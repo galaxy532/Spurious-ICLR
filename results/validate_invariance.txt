@@ -1,0 +1,68 @@
+
+=== invariance rule validation ========================================
+
+[PASS] C1_power_sign_reversal
+    n: 60000
+    invariance_f1: 1.0
+    sign_flip_f1: 1.0
+
+[PASS] C2_power_magnitude_only
+    n: 60000
+    invariance_f1: 0.9649122807017544
+    sign_flip_f1: 0.0
+    separates_rules: True
+
+[PASS] C3_calibration
+    n: 60000
+    n_s_found: 0
+    n_rejected: 0
+    d: 80
+    false_positive_rate: 0.0
+    mean_het_true_r: 0.04570109529956893
+    mean_het_true_s: 0.10042056445480485
+
+[PASS] C4_specificity_base_rate
+    logit: [{'shift': 0.5, 'P(y=+1|maj)': 0.5, 'P(y=+1|min)': 0.603, 'invariance_rejected': 0, 'naive_rejected': 80, 'invariance_n_s': 0, 'd': 80}, {'shift': 1.0, 'P(y=+1|maj)': 0.5, 'P(y=+1|min)': 0.698, 'invariance_rejected': 0, 'naive_rejected': 80, 'invariance_n_s': 0, 'd': 80}, {'shift': 1.5, 'P(y=+1|maj)': 0.5, 'P(y=+1|min)': 0.778, 'invariance_rejected': 0, 'naive_rejected': 80, 'invariance_n_s': 0, 'd': 80}]
+    probit: [{'shift': 0.5, 'P(y=+1|maj)': 0.499, 'P(y=+1|min)': 0.683, 'invariance_rejected': 17, 'naive_rejected': 80, 'invariance_n_s': 11, 'd': 80}, {'shift': 1.0, 'P(y=+1|maj)': 0.499, 'P(y=+1|min)': 0.828, 'invariance_rejected': 24, 'naive_rejected': 80, 'invariance_n_s': 18, 'd': 80}, {'shift': 1.5, 'P(y=+1|maj)': 0.499, 'P(y=+1|min)': 0.923, 'invariance_rejected': 24, 'naive_rejected': 80, 'invariance_n_s': 17, 'd': 80}]
+    note: logit rows are the pass/fail; probit rows measure link-mismatch leakage and are expected to be nonzero
+
+[PASS] C5_bin_stability
+    {'n_bins': 4, 'precision': 1.0, 'recall': 1.0, 'f1': 1.0, 'n_found': 20}
+    {'n_bins': 8, 'precision': 1.0, 'recall': 1.0, 'f1': 1.0, 'n_found': 20}
+    {'n_bins': 16, 'precision': 1.0, 'recall': 1.0, 'f1': 1.0, 'n_found': 20}
+    jaccard_across_bin_counts: 1.0
+
+[PASS] C2b_power_curve
+    {'n': 6000, 'invariance_f1': 0.36677890011223346, 'sign_flip_f1': 0.0}
+    {'n': 12000, 'invariance_f1': 0.6596119929453264, 'sign_flip_f1': 0.0}
+    {'n': 20000, 'invariance_f1': 0.8410419989367358, 'sign_flip_f1': 0.0}
+    {'n': 60000, 'invariance_f1': 0.9649122807017544, 'sign_flip_f1': 0.0}
+    {'n': 160000, 'invariance_f1': 1.0, 'sign_flip_f1': 0.0}
+
+=== mutants ======================================================
+
+[CAUGHT] M1_force_psi_1
+    naive_rejected: 80
+    invariance_rejected: 0
+    d: 80
+    note: the naive statistic must blow up on a pure base-rate difference where Breslow-Day stays quiet
+
+[CAUGHT] M2_no_effect_size
+    n_s_tau0: 24
+    n_s_default: 17
+    d: 80
+    note: without an effect-size floor, large n turns a negligible link mismatch into an s-block
+
+[CAUGHT] M3_single_bin
+    f1: 0.0
+    note: one bin cannot detect heterogeneity across bins
+
+[CAUGHT] M4_no_four_cell_guard
+    mean_het_s_guarded: 0.437
+    mean_het_s_unguarded: 1.145
+    stat_CV_s_guarded: 0.512
+    stat_CV_s_unguarded: 0.566
+    note: removing the guard must inflate het on the block whose tails saturate, via the Haldane correction on empty cells
+
+======================================================================
+VALIDATION PASSED

@@ -1,0 +1,64 @@
+# ---------------------------------------------------------------------------
+# READ THIS BEFORE ADDING A RULE.
+#
+# Two failures happened in the earlier repos and both are encoded here.
+#
+# 1. Rebuttals/ added `__pycache__/` AFTER those files were already committed.
+#    A .gitignore has no effect on files git already tracks, so they are still
+#    in that repo today. Add rules BEFORE the first commit, and verify with
+#    `git status --short`.
+#
+# 2. Rebuttals_2/ ignored `results/` wholesale to keep the tree clean. That
+#    silently broke the ONLY channel for getting numbers off the training box
+#    and back onto a laptop for auditing. Every run looked fine on Paperspace
+#    and produced nothing pullable.
+#
+#    `results/` IS TRACKED HERE. Do not add it. Its contents are small .json
+#    and .md; the heavy things that rule was really aimed at (.npz, .pt, .csv,
+#    datasets) are excluded by their own patterns below, wherever they appear.
+# ---------------------------------------------------------------------------
+
+# Datasets: large, and CUB-200-2011 / Places / CelebA are not ours to
+# redistribute. They live in a SIBLING directory, never inside the repo.
+data/
+datasets/
+waterbird*/
+celeba*/
+img_align_celeba*/
+*.tar.gz
+*.tgz
+*.zip
+*.7z
+
+# Cached representations. Regenerable, hundreds of MB each, and there is one
+# per (dataset, backbone) pair so they add up fast.
+*.npz
+features_*/
+
+# Trained weights. Regenerable.
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+
+# Raw tabular dumps that sometimes land next to the code
+*.csv
+*.tsv
+*.parquet
+!results/*.csv          # a small summary csv in results/ is allowed through
+
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.venv/
+venv/
+*.egg-info/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
