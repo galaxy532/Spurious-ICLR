@@ -66,7 +66,7 @@ worst-group accuracy), with `dfr_gain_std` reported alongside.
 | decision | value | why fixed now |
 |---|---|---|
 | split | **train** | the sweep is about training dynamics under imbalance, so it needs the split where the imbalance lives |
-| eps grid, Waterbirds | 0.01, 0.02, 0.05, 0.10, 0.25 | |
+| eps grid, Waterbirds | ~~0.01, 0.02, 0.05, 0.10, 0.25~~ → **0.005, 0.01, 0.02, 0.035, 0.05** | see Amendment 1 |
 | eps grid, CelebA | 0.02, 0.05, 0.10, 0.20, 0.40 | natural eps ≈ 0.42 allows a wider range |
 | step size `h` | 0.05 | as in `Rebuttals/` |
 | `T` | 2,000,000 | the regime is asymptotic; long on purpose |
@@ -168,4 +168,48 @@ Therefore, declared now:
 
 ## Amendments
 
-*(dated entries only, each with the reason. Empty at time of writing.)*
+*(dated entries only, each with the reason.)*
+
+### Amendment 1 — 14 August 2026 — Waterbirds eps grid
+
+**Changed.** Arm A Waterbirds eps grid, from `0.01, 0.02, 0.05, 0.10, 0.25` to
+**`0.005, 0.01, 0.02, 0.035, 0.05`**.
+
+**Why.** A sample-size fact, not a judgement call. Waterbirds train contains
+**240 minority samples** against 4,555 majority, so the largest reachable `eps`
+is **0.0501**. The original grid's top two points were unreachable.
+
+`common.subsample_to_eps` caps `n_min` at the number of minority samples that
+exist rather than failing, so the original grid would have collapsed three of its
+five points onto `eps = 0.0501`, two of them exact duplicates — silently, with
+nothing in the output indicating it.
+
+**Why this matters more than a lost data point.** The failure is directional. The
+`kappa` fit would have paired `x = log(0.10)` and `log(0.25)` with `y` values
+measured at `eps = 0.05`, flattening the regression slope toward zero and pushing
+the classification toward `kappa ≈ 0` — i.e. toward "`alpha > 1`, balancing
+cannot help". A **false negative that would have looked like a clean positive
+result**, on the arm whose whole purpose is to avoid over-claiming.
+
+**When.** Discovered 14 August 2026 from `datasets.py` cell counts, **before any
+sweep was run and before any result existed.** Nothing was fitted, plotted or
+looked at beforehand.
+
+**Consequences accepted, and to be reported in the paper:**
+
+- Waterbirds arm A now spans **one decade** of `eps` (0.005–0.05) instead of 1.4.
+- `n_min` at the bottom point is **23 samples**. Every Waterbirds curve must be
+  reported with its `n_min` column, and the two thinnest points flagged.
+- **CelebA becomes the primary arm-A evidence** (0.02–0.40, `n_min` from 1,929 to
+  63,003) and Waterbirds a secondary replication. Any claim resting on Waterbirds
+  alone is not made.
+- The majority-as-control design is **kept**. Sweeping by subsampling the
+  majority instead would have reached `eps = 0.5`, but at `eps = 0.5` the run
+  would train on 480 samples at `d = 2048`, and the majority would stop being a
+  control. Rejected on those grounds, not on the result.
+
+**Guard added.** `eps_backbone_sweep.py` now refuses unreachable `eps` values
+with a hard error naming the maximum reachable value, and warns when any point
+yields fewer than 50 minority samples. `common.py` was **not** modified — it is a
+byte-for-byte copy whose sha256 transfers `Estimator_Validation/`'s
+certification.

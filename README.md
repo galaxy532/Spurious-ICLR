@@ -72,8 +72,10 @@ for B in erm_rn50 under_rn50 clip dinov2; do
 done
 
 # 2. ARM A -- the deliverable.  --device cuda is NOT optional for CelebA.
+#    NOTE the Waterbirds grid: its train split has only 240 minority samples,
+#    so eps cannot exceed 0.0501. See PREREGISTRATION.md Amendment 1.
 python eps_backbone_sweep.py --bundles 'features_waterbirds_*_train.npz' \
-    --device cuda --dfr
+    --eps 0.005,0.01,0.02,0.035,0.05 --device cuda --dfr
 python eps_backbone_sweep.py --bundles 'features_celeba_*_train.npz' \
     --eps 0.02,0.05,0.10,0.20,0.40 --device cuda --dfr
 

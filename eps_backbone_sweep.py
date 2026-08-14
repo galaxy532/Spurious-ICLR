@@ -150,6 +150,52 @@ def sweep_one(
     X = fb.phi
     rows, curves = [], {}
 
+    # --- reachability guard ------------------------------------------------
+    #
+    # `common.subsample_to_eps` holds the majority fixed and subsamples the
+    # minority, then CAPS n_min at the number of minority samples that exist:
+    #
+    #     n_min = min(round(eps * n_maj / (1 - eps)), idx_min.size)
+    #
+    # so an unreachable eps silently returns a run at the LARGEST reachable eps
+    # instead. Nothing errors and nothing warns. On Waterbirds train (240
+    # minority samples, max eps = 0.0501) the grid 0.01..0.25 collapses three of
+    # its five points onto 0.0501, two of them exact duplicates.
+    #
+    # That failure is directional, which is why it gets a hard stop rather than
+    # a warning: the kappa fit would pair x = log(0.10), log(0.25) with y values
+    # measured at eps = 0.05, flattening the slope toward zero and pushing the
+    # classification toward "kappa ~ 0, alpha > 1, balancing cannot help". A
+    # false negative wearing the costume of a clean result.
+    #
+    # common.py cannot be patched -- it is a byte-for-byte copy whose sha256 is
+    # what transfers Estimator_Validation's certification -- so the check lives
+    # here.
+    n_maj = int(np.sum(fb.g == 0))
+    n_min_avail = int(np.sum(fb.g == 1))
+    eps_max = n_min_avail / (n_maj + n_min_avail)
+    bad = [e for e in eps_list
+           if int(round(e * n_maj / max(1e-12, 1.0 - e))) > n_min_avail]
+    if bad:
+        raise ValueError(
+            f"eps values {bad} are unreachable: only {n_min_avail} minority "
+            f"samples exist against {n_maj} majority, so the largest reachable "
+            f"eps is {eps_max:.4f}.\n"
+            f"subsample_to_eps would silently cap these to {eps_max:.4f} and the "
+            f"kappa fit would be biased toward 0 (i.e. toward a false "
+            f"'balancing cannot help').\n"
+            f"Pass --eps values at or below {eps_max:.4f}. For Waterbirds train "
+            f"the preregistered grid is 0.005,0.01,0.02,0.035,0.05 "
+            f"(see PREREGISTRATION.md, Amendment 1)."
+        )
+
+    thin = [e for e in eps_list
+            if int(round(e * n_maj / max(1e-12, 1.0 - e))) < 50]
+    if thin:
+        print(f"  NOTE: eps {thin} give fewer than 50 minority samples. The "
+              f"per-group error at those points is estimated from very few "
+              f"samples; report n_min alongside every curve.")
+
     if device != "cpu":
         from gd_gpu import logistic_gd_torch
 
