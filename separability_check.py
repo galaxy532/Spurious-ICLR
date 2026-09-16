@@ -103,6 +103,7 @@ import time
 import numpy as np
 
 from common import FeatureBundle, subsample_to_eps
+from progress import pbar
 
 LP_TOL = 1e-9
 
@@ -164,6 +165,24 @@ def _try_lp(X: np.ndarray, y: np.ndarray, time_limit: float):
     return (rho > LP_TOL), rho, res.x[:d].copy(), "ok"
 
 
+def quick_separable(X: np.ndarray, y: np.ndarray, C: float = 1e6,
+                    max_iter: int = 5000):
+    """Constructive-only separability test, for callers that need a fast gate.
+
+    Returns (True, margin) when a separator is FOUND -- which is a proof -- and
+    (None, nan) when none was found, which is NOT a proof of the negative: the
+    optimiser may simply have missed a tiny margin. Callers that need the
+    negative settled must run this module's LP (i.e. the full script).
+    """
+    w, m, nv = _try_logistic(X, y, C, max_iter)
+    if nv == 0:
+        return True, m
+    w2, m2, nv2 = _try_logistic(X, y, C * 1e3, max_iter * 4)
+    if nv2 == 0:
+        return True, m2
+    return None, float("nan")
+
+
 def check_cell(X: np.ndarray, y: np.ndarray, C: float, max_iter: int,
                lp_max_n: int, lp_time_limit: float) -> dict:
     """Decide separability for one cell and measure its margin.
@@ -213,26 +232,29 @@ def check_bundle(fb: FeatureBundle, eps_list: list[float], seed: int,
                  C: float, max_iter: int, lp_max_n: int,
                  lp_time_limit: float) -> dict:
     """Full bundle first, then every eps cell, reproducing the sweep's draws."""
-    rows = []
-
-    # The full split. This is the row the subset argument keys on.
-    r = check_cell(fb.phi, fb.y, C, max_iter, lp_max_n, lp_time_limit)
-    r.update({"eps": None, "label": "full", "n": int(fb.y.size),
-              "n_min": int(np.sum(fb.g == 1))})
-    rows.append(r)
-    print(f"  full          n={r['n']:>7}  sep={r['separable']}  "
-          f"margin={r['margin']:.4g}  [{r['how']}, {r['secs']}s]")
-
-    # Same rng, same order, same calls as sweep_one.
+    # Draw every subsample FIRST, in the sweep's order, so the rng consumption
+    # is identical to sweep_one's -- the full split does not touch the rng. Then
+    # the cells are a known-length list, which is what the bar needs.
     rng = np.random.default_rng(seed)
+    cells = [(None, "full", None)]
     for eps in eps_list:
-        idx = subsample_to_eps(fb.y, fb.g, eps, rng)
-        r = check_cell(fb.phi[idx], fb.y[idx], C, max_iter, lp_max_n, lp_time_limit)
-        r.update({"eps": eps, "label": f"{eps:g}", "n": int(idx.size),
-                  "n_min": int(np.sum(fb.g[idx] == 1))})
+        cells.append((eps, f"{eps:g}", subsample_to_eps(fb.y, fb.g, eps, rng)))
+
+    rows = []
+    bar = pbar(total=len(cells), unit="cell", desc="  cells")
+    for eps, label, idx in cells:
+        bar.set_postfix_str(f"{label}")
+        X = fb.phi if idx is None else fb.phi[idx]
+        yy = fb.y if idx is None else fb.y[idx]
+        gg = fb.g if idx is None else fb.g[idx]
+        r = check_cell(X, yy, C, max_iter, lp_max_n, lp_time_limit)
+        r.update({"eps": eps, "label": label, "n": int(yy.size),
+                  "n_min": int(np.sum(gg == 1))})
         rows.append(r)
-        print(f"  eps={eps:<9g} n={r['n']:>7}  sep={r['separable']}  "
+        print(f"  {label:<13} n={r['n']:>7}  sep={r['separable']}  "
               f"margin={r['margin']:.4g}  [{r['how']}, {r['secs']}s]")
+        bar.update(1)
+    bar.close()
 
     return {"rows": rows, "meta": fb.meta, "eps_list": eps_list, "seed": seed}
 
@@ -313,7 +335,7 @@ def main() -> None:
     os.makedirs(args.out_dir, exist_ok=True)
 
     all_res = {}
-    for p in paths:
+    for p in pbar(paths, unit="bundle", desc="bundles"):
         key = os.path.splitext(os.path.basename(p))[0].replace("features_", "")
         print(f"[{key}] loading {p}")
         fb = FeatureBundle.load(p)

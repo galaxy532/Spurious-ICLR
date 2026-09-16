@@ -66,20 +66,26 @@ worst-group accuracy), with `dfr_gain_std` reported alongside.
 | decision | value | why fixed now |
 |---|---|---|
 | split | **train** | the sweep is about training dynamics under imbalance, so it needs the split where the imbalance lives |
-| eps grid, Waterbirds | ~~0.01, 0.02, 0.05, 0.10, 0.25~~ → **0.005, 0.01, 0.02, 0.035, 0.05** | see Amendment 1 |
+| eps mechanism | ~~subsample the minority~~ → **reweight the loss** (`--mode reweight`) | see Amendment 2 |
+| eps grid, Waterbirds | ~~0.01, 0.02, 0.05, 0.10, 0.25~~ → ~~0.005, 0.01, 0.02, 0.035, 0.05~~ → **0.01, 0.03, 0.08, 0.2, 0.5** | see Amendments 1 and 2 |
 | eps grid, CelebA | 0.02, 0.05, 0.10, 0.20, 0.40 | natural eps ≈ 0.42 allows a wider range |
 | step size `h` | 0.05 | as in `Rebuttals/` |
 | `T` | 2,000,000 | the regime is asymptotic; long on purpose |
 | exponent windows | fractional 0.30–0.60 and 0.60–1.00 of the run | reported as two numbers with their drift, never one |
 | `kappa` fit | log-log least squares of worst-group error on `eps` at 3 matched `z_t` values, median taken | |
-| backbones | erm_rn50, under_rn50, clip, dinov2 | all four are reported whatever they show |
+| backbones | erm_rn50, under_rn50, clip, dinov2 | all four are reported whatever they show; `clip` is **excluded from arm A on Waterbirds** by the separability precondition — see Amendment 2 |
 | features | standardised | `z_t` is not comparable across backbones otherwise |
 
 ### Controls that must hold, or the run is void
 
-1. **`beta_maj` must not move systematically with `eps`.** Only the minority is
+1. ~~**`beta_maj` must not move systematically with `eps`.** Only the minority is
    subsampled, so the majority curve is a control. If it drifts, something other
-   than the group proportion changed and the cell is discarded, not interpreted.
+   than the group proportion changed and the cell is discarded, not interpreted.~~
+   **RETIRED for `--mode reweight` by Amendment 2** — under reweighting the
+   majority's own weight changes with `eps`, so its curve is *expected* to move
+   and this test would void every run. Replaced by the margin-invariance and
+   uniform-`c` controls in Amendment 2. Still applies to `--mode subsample`,
+   where it **failed**.
 2. **`beta_maj` should sit near 1.** In `Rebuttals/` it held 0.94–0.98 while the
    minority exponent was still climbing; that is what says the machinery works.
 3. **`beta_min` will look too low.** It converges to `max(alpha, 1)` from below
@@ -213,3 +219,145 @@ with a hard error naming the maximum reachable value, and warns when any point
 yields fewer than 50 minority samples. `common.py` was **not** modified — it is a
 byte-for-byte copy whose sha256 transfers `Estimator_Validation/`'s
 certification.
+
+---
+
+### Amendment 2 — 16 September 2026 — eps by reweighting, not subsampling
+
+**Changed.**
+
+1. Arm A moves `eps` by **reweighting the loss** rather than deleting minority
+   rows. `eps_backbone_sweep.py --mode reweight` is now the default;
+   `--mode subsample` retains the old behaviour and is still runnable.
+2. Waterbirds `eps` grid → **0.01, 0.03, 0.08, 0.2, 0.5**.
+3. `clip` is **excluded from arm A on Waterbirds** by a separability
+   precondition, and reported as out of scope rather than as a result.
+4. Arm-A control 1 (`beta_maj` must not move with `eps`) is **retired** for
+   reweight mode and replaced by two others, below.
+
+**WHEN — and this is the part that must not be glossed.** Unlike Amendment 1,
+this amendment is made **after** arm A was run and after its results were seen.
+The first Waterbirds sweep (`results/waterbirds.{md,json}`, 10 September 2026)
+exists, was inspected, and is what motivated the change. That is exactly the
+situation a preregistration is meant to make visible rather than hide, so:
+
+- The subsampled results are **reported, not discarded.** They appear in the
+  paper alongside the reweighted ones.
+- The comparison between the two modes **is** one of the findings, not a
+  robustness footnote.
+- Nothing was changed to make a number come out better. The change was forced by
+  a control failure and by a diagnostic run (`separability_check.py`) that was
+  written for the purpose and whose output is in `results/`.
+
+**WHY — the margin confound.**
+
+`--mode subsample` moves `eps` by deleting minority rows. On Waterbirds
+(`results/waterbirds_separability.md`) that moves the maximum margin of the
+training set by up to **6.4×**, and for `clip` it moves the training set across
+the separability boundary entirely — separable at `eps` = 0.005, 0.01, 0.02 and
+**not separable** at 0.035, 0.05 (LP proof, maximum margin exactly 0).
+
+The measured decay exponent is a function of that margin. Pooling all 18
+separable cells across all four backbones:
+
+    beta_maj = 0.362 * log10(margin) + 1.034      R^2 = 0.92
+    r(log margin, beta_maj) = 0.96   r(log margin, beta_min) = 0.97
+    r(log eps,    beta_maj) = -0.18
+
+Adding `log10(eps)` to that regression alongside the margin buys **dR^2 =
++0.004**. Once the margin is in the model, `eps` has no explanatory power left.
+
+**The bias has a forced sign, which is why it cannot be averaged away.** Any
+subset of a separable set has maximum margin **≥** the full set's, because the
+infimum is taken over fewer constraints. Minority points are the ones near the
+boundary. So deleting them can only **raise** the margin, which can only **raise**
+the measured exponent — lowering `eps` always biases `kappa` in the same
+direction. This is combinatorial, not a property of Waterbirds, so CelebA would
+inherit it unchanged.
+
+**And it is a gap between the population and the sample, not a sampling bug.**
+`common.subsample_to_eps` draws uniformly, so the group-conditional distribution
+is preserved exactly. What changes is the sample *size*. In the population the
+margin does not depend on `eps` at all — the support of the mixture is the union
+of both groups' supports for every `eps` in (0,1) — while in the sample it moves
+by 6.4×. The sweep was measuring the sample. Reweighting keeps the sample fixed
+and moves only the mixture weight, which is the only thing the theory moves.
+
+**What the confound did to the first run.** Three of four backbones returned
+*negative* `kappa` (clip −0.924, under_rn50 −0.958, erm_rn50 −0.257): worst-group
+error *rising* with `eps`, a direction **neither** regime of the theory predicts.
+`classify()` has no branch for a wrong-sign `kappa`, so all three were reported
+as `alpha > 1`. The one backbone whose control held, dinov2, reads "insensitive
+to `eps`" only because its margin barely moves under subsampling (1.4× against
+5.9× and 6.4×) — so that cell is not independent evidence either.
+
+**Verification done before adopting reweighting.** The concern was that weights
+might change *where* GD converges rather than only *how fast*. Measured, not
+assumed: with positive fixed per-sample weights, logistic GD still converges in
+direction to the same maximum-margin separator. Cosine to the hard-margin SVM
+rises with `T` for every `eps`, and the cosine between the `eps` = 0.05 and
+`eps` = 0.8 runs goes **0.999288 → 0.999664 → 0.999891** across
+`T` = 1e4, 1e5, 1e6, with all ten weighting pairs moving monotonically toward 1.
+The effect survives: worst-group error at matched `z_t` spanned **6.8×** across
+the grid on that problem, `kappa` = 0.682 (R^2 = 0.99), with the sign the theory
+predicts when the minority is binding — the **opposite** of the sign the
+subsampled sweep produced on real data.
+
+**Why the grid could widen.** Amendment 1 capped Waterbirds at `eps` ≤ 0.0501
+because only 240 minority samples exist. Reweighting deletes nothing, so no
+`eps` is unreachable and the cap does not apply. The grid spans **1.7 decades**
+(0.01–0.5) instead of one, and brackets the natural proportion 0.0501. A
+consequence worth stating: **Waterbirds is no longer range-limited, so it is no
+longer dependent on CelebA for the width of the sweep.** Amendment 1's demotion
+of Waterbirds to a secondary replication is relaxed on that specific ground —
+and on that ground only. The `n_min` = 23 problem also disappears: every cell
+now uses all 240 minority samples.
+
+**Why `clip` is excluded rather than retrained.** Frozen CLIP features do not
+linearly separate Waterbirds train at all — maximum margin exactly 0, by LP
+proof on the full split. The implicit-bias phase this arm measures exponents in
+only exists on separable data; off it, GD converges to a finite minimiser, every
+`beta` is 0 by construction and `kappa` is **undefined rather than small**.
+Reporting that as a scope condition of the theory is the honest result.
+Fine-tuning CLIP until it separates was rejected: it would change `Phi`, which is
+the experimental axis; it would select backbones on the validity condition, which
+is selection bias; and it would destroy the `clip`-vs-`dinov2` contrast the
+backbone set was built around. Noted for the paper: `backbones.py` predicted *a
+priori* that CLIP would be "the most spuriously entangled of the four", and it
+turns out to be the one whose features cannot separate the dataset at all.
+
+**Controls, replacing the retired one.**
+
+1. **Margin invariance.** The maximum margin and separability are constant across
+   the whole `eps` grid *by construction* under reweighting — the sample is
+   identical at every point. Verified once per bundle by
+   `separability_check.py`. This is the control whose failure voided the
+   subsampled run.
+2. **Uniform-`c` identity.** At `c_i = 1/N` the weighted recurrence must
+   reproduce `common.logistic_gd`. Checked by `gd_gpu.py --validate`, which now
+   runs it explicitly; measured agreement in numpy is 1.1e-16. Note this is
+   reached at `eps` equal to the natural proportion, where the weights are
+   uniform by definition — so the grid contains its own consistency check.
+3. The `beta_min` drift caveat is **unchanged**: it converges to `max(alpha, 1)`
+   from below and slowly, is reported over two `z` windows, and a single low
+   number is not a refutation.
+
+**`kappa` stability in `T` is now read, not assumed.** `kappa_per_z` reports the
+fit at three horizons (0.25/0.5/1.0 of `z_max`). If those drift, `kappa` depends
+on run length and is not yet asymptotic; it is reported as such. In the first run
+dinov2 gave [0.071, 0.066, 0.063] and clip gave [−0.61, −0.924, −1.259].
+
+**Unchanged.** Every threshold in the success criteria: `kappa` ≥ 0.60 →
+"balancing helps", ≤ 0.20 → "no help", between → no prediction; "helps" means
+`dfr_gain_mean` ≥ 0.02 worst-group accuracy; success = agreement in ≥ 6 of 8
+non-ambiguous cells **and** at least one cell of each class; an all-one-regime
+sweep is UNINFORMATIVE. `h` = 0.05, `T` = 2,000,000, the two exponent windows,
+standardisation, the train split, and all of arm B.
+
+**Guards added.** `eps_backbone_sweep.py` now refuses any bundle whose full split
+has no separator found, unless `--allow-nonseparable` is passed, and records
+`mode` and `full_split_margin` in its output so the two modes can never be
+confused after the fact. `common.py` and `identify_rs.py` were **not** modified —
+their sha256 values still match those recorded in `README.md`, so
+`Estimator_Validation/`'s certification still transfers. The weighted recurrence
+lives in `gd_gpu.py` for exactly that reason.

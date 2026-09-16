@@ -50,6 +50,7 @@ import urllib.request
 import zipfile
 
 from datasets import DATA_ROOT
+from progress import pbar
 
 WATERBIRDS_URL = ("https://nlp.stanford.edu/data/dro/"
                   "waterbird_complete95_forest2water2.tar.gz")
@@ -75,17 +76,35 @@ REQUIRED = {
 }
 
 
+_DL = {"bar": None, "total": None}
+
+
 def _hook(blocks, bs, total):
+    """urlretrieve reporthook -> one progress bar per download.
+
+    urlretrieve gives no start/finish callback, so the bar is created lazily on
+    the first block and retired when `total` changes or the transfer completes.
+    Progress goes to stderr (see progress.py): this module also prints manual
+    instructions to stdout that a user may pipe to a file.
+    """
     if total <= 0:
         return
-    pct = min(100.0, blocks * bs * 100.0 / total)
-    sys.stdout.write(f"\r    {pct:5.1f}%  of {total / 1e9:.2f} GB")
-    sys.stdout.flush()
+    if _DL["bar"] is None or _DL["total"] != total:
+        if _DL["bar"] is not None:
+            _DL["bar"].close()
+        _DL["bar"] = pbar(total=total, unit="B", desc="    download")
+        _DL["total"] = total
+    bar = _DL["bar"]
+    bar.update(max(0, min(blocks * bs, total) - bar.n))
+    if blocks * bs >= total:
+        bar.close()
+        _DL["bar"] = None
+        _DL["total"] = None
 
 
 def _count_images(root: str) -> int:
     n = 0
-    for _, _, files in os.walk(root):
+    for _, _, files in pbar(os.walk(root), unit="dir", desc="    counting", leave=False):
         n += sum(f.lower().endswith((".jpg", ".jpeg", ".png")) for f in files)
         if n > 250_000:
             break

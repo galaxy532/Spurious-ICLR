@@ -41,6 +41,7 @@ import os
 import numpy as np
 
 from backbones import REGISTRY, get_backbone
+from progress import pbar
 from common import FeatureBundle, standardize
 from datasets import DATA_ROOT, cell_report, load_metadata
 
@@ -82,6 +83,8 @@ def train_erm(model, dim, paths, y, tf, epochs, bs, lr, wd, workers, device):
     for ep in range(epochs):
         tot = cor = 0
         run = 0.0
+        bar = pbar(total=len(dl), unit="batch", desc=f"  train ep {ep + 1}/{epochs}",
+                   leave=False)
         for xb, idx in dl:
             xb = xb.to(device, non_blocking=True)
             yb = yt[idx].to(device)
@@ -93,6 +96,9 @@ def train_erm(model, dim, paths, y, tf, epochs, bs, lr, wd, workers, device):
             run += float(loss) * yb.size(0)
             cor += int((out.argmax(1) == yb).sum())
             tot += yb.size(0)
+            bar.set_postfix_str(f"loss {run / tot:.4f} acc {cor / tot:.4f}")
+            bar.update(1)
+        bar.close()
         print(f"    epoch {ep + 1}/{epochs}  loss {run / tot:.4f}  acc {cor / tot:.4f}")
     model.eval()
     # The head is discarded on purpose: Phi is the backbone output, and every
@@ -107,7 +113,7 @@ def embed(model, paths, tf, bs, workers, device) -> np.ndarray:
     dl = _loader(paths, tf, bs, workers)
     out = []
     with torch.no_grad():
-        for xb, _ in dl:
+        for xb, _ in pbar(dl, unit="batch", desc="  embedding"):
             out.append(model(xb.to(device, non_blocking=True)).float().cpu().numpy())
     return np.concatenate(out, axis=0).astype(np.float64)
 

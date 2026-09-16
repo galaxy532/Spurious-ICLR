@@ -87,10 +87,60 @@ import os
 import numpy as np
 
 from common import FeatureBundle, local_slope, logistic_gd, subsample_to_eps
+from progress import pbar
 
 # The two z-windows the exponents are reported over. Two numbers with their
 # drift, never one number pretending to have converged.
 Z_WINDOWS = ((0.30, 0.60), (0.60, 1.00))
+
+
+def eps_weights(g: np.ndarray, eps: float) -> np.ndarray:
+    """Per-sample weights realising group proportion `eps` WITHOUT touching the sample.
+
+    The population gradient is  (1-eps) E_maj[.] + eps E_min[.].  Putting that
+    weighting on a fixed sample gives c_i = (1-eps)/n_maj on the majority and
+    eps/n_min on the minority, which sums to 1.
+
+    WHY THIS EXISTS -- the margin confound
+    ======================================
+    `--mode subsample` moves eps by deleting minority rows. Measured on
+    Waterbirds (results/waterbirds_separability.md), that moves the max margin
+    by up to 6.4x, and for CLIP it moves the training set across the
+    separability boundary entirely. The decay exponent is a function of the
+    margin: pooling all 18 separable cells across four backbones,
+    beta = 0.362 log10(margin) + 1.034 with R^2 = 0.92, while eps adds
+    dR^2 = +0.004 on top of it. So the subsampling sweep measures how the margin
+    responds to deletion, not the eps law.
+
+    The bias has a FORCED SIGN, which is why it cannot be averaged away: any
+    subset of a separable set has max margin >= the full set's, because the
+    infimum is over fewer constraints. Deleting minority rows can only RAISE the
+    margin, so lowering eps can only raise the measured exponent.
+
+    In the population the margin does not depend on eps at all -- the support of
+    the mixture is the union of both groups' supports for every eps in (0,1).
+    Reweighting reproduces that: same points, same margin, same separability, at
+    every eps. Only the mixture weight moves, which is the only thing the theory
+    moves.
+
+    Verified numerically before this was adopted (see the session notes): with
+    positive fixed weights, logistic GD still converges in direction to the same
+    max-margin separator -- cosine to the hard-margin SVM rises with T for every
+    eps, and the cosine between the eps=0.05 and eps=0.8 runs goes
+    0.999288 -> 0.999664 -> 0.999891 across T = 1e4, 1e5, 1e6. So eps is a pure
+    RATE knob here. The effect survives: worst-group error at matched z spanned
+    6.8x across the eps grid on that problem, with kappa = 0.682 and the sign
+    the theory predicts when the minority is binding -- the opposite of the sign
+    the subsampling sweep produced on real data.
+    """
+    n_maj = int(np.sum(g == 0))
+    n_min = int(np.sum(g == 1))
+    if n_maj == 0 or n_min == 0:
+        raise ValueError("eps_weights needs both groups present")
+    c = np.empty(g.size, dtype=np.float64)
+    c[g == 0] = (1.0 - eps) / n_maj
+    c[g == 1] = eps / n_min
+    return c
 
 
 def _err_at_z(rec: dict, z_targets: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -132,6 +182,7 @@ def sweep_one(
     seed: int = 0,
     device: str = "cpu",
     dtype: str = "float32",
+    mode: str = "reweight",
 ) -> dict:
     """Run the eps sweep for one (dataset, backbone) bundle.
 
@@ -174,8 +225,12 @@ def sweep_one(
     n_maj = int(np.sum(fb.g == 0))
     n_min_avail = int(np.sum(fb.g == 1))
     eps_max = n_min_avail / (n_maj + n_min_avail)
-    bad = [e for e in eps_list
-           if int(round(e * n_maj / max(1e-12, 1.0 - e))) > n_min_avail]
+    # In reweight mode nothing is deleted, so no eps is unreachable and the
+    # Amendment 1 cap does not apply: Waterbirds can sweep 0.001-0.5 rather than
+    # the single decade 240 minority samples allowed.
+    bad = [] if mode == "reweight" else [
+        e for e in eps_list
+        if int(round(e * n_maj / max(1e-12, 1.0 - e))) > n_min_avail]
     if bad:
         raise ValueError(
             f"eps values {bad} are unreachable: only {n_min_avail} minority "
@@ -189,8 +244,9 @@ def sweep_one(
             f"(see PREREGISTRATION.md, Amendment 1)."
         )
 
-    thin = [e for e in eps_list
-            if int(round(e * n_maj / max(1e-12, 1.0 - e))) < 50]
+    thin = [] if mode == "reweight" else [
+        e for e in eps_list
+        if int(round(e * n_maj / max(1e-12, 1.0 - e))) < 50]
     if thin:
         print(f"  NOTE: eps {thin} give fewer than 50 minority samples. The "
               f"per-group error at those points is estimated from very few "
@@ -199,24 +255,42 @@ def sweep_one(
     if device != "cpu":
         from gd_gpu import logistic_gd_torch
 
-        def _run(Xi, yi, gi):
-            return logistic_gd_torch(Xi, yi, gi, h=h, T=T,
+        def _run(Xi, yi, gi, c=None):
+            return logistic_gd_torch(Xi, yi, gi, h=h, T=T, c=c,
                                      device=device, dtype=dtype)
     else:
-        def _run(Xi, yi, gi):
-            return logistic_gd(Xi, yi, gi, h=h, T=T)
+        from gd_gpu import logistic_gd_weighted
 
+        def _run(Xi, yi, gi, c=None):
+            # c=None keeps the certified common.logistic_gd path untouched.
+            if c is None:
+                return logistic_gd(Xi, yi, gi, h=h, T=T)
+            return logistic_gd_weighted(Xi, yi, gi, c=c, h=h, T=T)
+
+    # Outer bar over the eps grid. On --device cuda the inner GD loop has its
+    # own bar from gd_gpu.py; on the CPU path it does NOT, because that path
+    # runs common.logistic_gd, which is a byte-for-byte copy whose sha256 is
+    # what transfers Estimator_Validation's certification and must not change.
+    eps_bar = pbar(total=len(eps_list), unit="eps", desc=f"  eps grid ({mode})")
     for eps in eps_list:
-        idx = subsample_to_eps(fb.y, fb.g, eps, rng)
-        rec = _run(X[idx], fb.y[idx], fb.g[idx])
+        eps_bar.set_postfix_str(f"eps={eps:g}")
+        if mode == "subsample":
+            idx = subsample_to_eps(fb.y, fb.g, eps, rng)
+            rec = _run(X[idx], fb.y[idx], fb.g[idx])
+            n_used, n_min_used = int(idx.size), int(np.sum(fb.g[idx] == 1))
+        else:
+            # Same rows at every eps -- only the weights move. See eps_weights.
+            rec = _run(X, fb.y, fb.g, c=eps_weights(fb.g, eps))
+            n_used, n_min_used = int(fb.y.size), int(np.sum(fb.g == 1))
         curves[f"{eps:g}"] = {k: np.asarray(v).tolist() for k, v in rec.items()}
-        row = {"eps": eps, "n": int(idx.size),
-               "n_min": int(np.sum(fb.g[idx] == 1))}
+        row = {"eps": eps, "n": n_used, "n_min": n_min_used}
         for wi, (lo, hi) in enumerate(Z_WINDOWS):
             row[f"beta_min_w{wi}"] = _window_slope(rec, "err_min", lo, hi)
             row[f"beta_maj_w{wi}"] = _window_slope(rec, "err_maj", lo, hi)
         row["z_max"] = float(rec["z"][-1])
         rows.append(row)
+        eps_bar.update(1)
+    eps_bar.close()
 
     # Worst-group error at matched z_t, across eps. This is the quantity the
     # oDsv claim is about.
@@ -249,6 +323,7 @@ def sweep_one(
         "worst_group_at_z": wg.tolist(),
         "kappa_per_z": kappas, "kappa": k_med,
         "regime": classify(k_med),
+        "mode": mode,
         "eps_list": eps_list, "h": h, "T": T,
         "meta": fb.meta,
     }
@@ -312,7 +387,7 @@ def dfr_gain(fb: FeatureBundle, seed: int = 0, n_boot: int = 20) -> dict:
     k = min(c.size for c in cells)
 
     gains = []
-    for _ in range(n_boot):
+    for _ in pbar(range(n_boot), unit="boot", desc="  dfr bootstrap"):
         idx = np.concatenate([rng.choice(c, k, replace=False) for c in cells])
         bal = LogisticRegression(max_iter=2000, C=1.0).fit(Xtr[idx], ytr[idx])
         gains.append(worst_group_acc(bal) - a_erm)
@@ -324,9 +399,15 @@ def dfr_gain(fb: FeatureBundle, seed: int = 0, n_boot: int = 20) -> dict:
 
 
 def to_markdown(all_res: dict) -> str:
+    modes = {r.get("mode", "subsample") for r in all_res.values()}
     L = ["\n## epsilon x backbone sweep", "",
+         f"mode: **{'/'.join(sorted(modes))}**  "
+         "(reweight = eps in the loss weights, sample held fixed; "
+         "subsample = minority rows deleted, carries a margin confound)", "",
          "`kappa` is the exponent in  worst-group error ~ eps^(-kappa)  at "
-         "matched z_t.", "",
+         "matched z_t. `kappa_per_z` in the json gives it at three horizons "
+         "(0.25/0.5/1.0 of z_max): if those drift, kappa depends on how long "
+         "the run was and is not yet an asymptotic quantity.", "",
          "| backbone | n | kappa | regime | predicted | DFR gain (measured) |",
          "|---|---|---|---|---|---|"]
     for key, r in all_res.items():
@@ -375,6 +456,17 @@ def main() -> None:
     ap.add_argument("--dtype", default="float32", choices=["float32", "float64"],
                     help="GPU only. float32 unless gd_gpu.py --validate says "
                          "the precision drift is too large.")
+    ap.add_argument("--mode", default="reweight",
+                    choices=["reweight", "subsample"],
+                    help="reweight (default): eps goes in the LOSS WEIGHTS and "
+                         "the sample is held fixed, so the margin cannot move "
+                         "with eps. subsample: the original behaviour, which "
+                         "deletes minority rows and carries a margin confound "
+                         "with a forced sign -- see eps_weights().")
+    ap.add_argument("--allow-nonseparable", action="store_true",
+                    help="run a bundle even when no separator was found on its "
+                         "full split. Off by default: beta is identically 0 "
+                         "there and kappa is undefined, not small.")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out-dir", default="results")
     ap.add_argument("--tag", default="eps_backbone")
@@ -398,7 +490,7 @@ def main() -> None:
             )
 
     all_res = {}
-    for p in paths:
+    for p in pbar(paths, unit="bundle", desc="bundles"):
         key = os.path.splitext(os.path.basename(p))[0].replace("features_", "")
         print(f"[{key}] loading {p}")
         fb = FeatureBundle.load(p)
@@ -406,8 +498,27 @@ def main() -> None:
             print(f"  WARNING: {key} is not marked standardised. z_t is not "
                   f"comparable across backbones without it -- see the module "
                   f"docstring, point 2.")
+        # SEPARABILITY PRECONDITION. The implicit-bias phase the exponents are
+        # measured in only exists on separable data; off it, GD converges to a
+        # finite minimiser and every beta is 0 by construction. Same pattern as
+        # the Amendment 1 reachability guard: refuse rather than emit a number.
+        from separability_check import quick_separable
+        sep, marg = quick_separable(fb.phi, fb.y)
+        if sep is True:
+            print(f"  full split separable, margin {marg:.4g}")
+        else:
+            msg = (f"  NO SEPARATOR FOUND on the full split of {key}. The "
+                   f"implicit-bias regime does not exist there, so beta is 0 by "
+                   f"construction and kappa is UNDEFINED rather than small. "
+                   f"Run separability_check.py for a proof either way.")
+            if not args.allow_nonseparable:
+                print(msg + " Skipping (pass --allow-nonseparable to override).")
+                continue
+            print(msg + " Continuing because --allow-nonseparable was given.")
+
         res = sweep_one(fb, eps_list, h=args.h, T=args.T, seed=args.seed,
-                        device=args.device, dtype=args.dtype)
+                        device=args.device, dtype=args.dtype, mode=args.mode)
+        res["full_split_margin"] = float(marg) if sep is True else None
         if args.dfr:
             res["dfr"] = dfr_gain(fb, seed=args.seed)
         all_res[key] = res

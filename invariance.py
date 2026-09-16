@@ -202,6 +202,8 @@ import os
 
 import numpy as np
 
+from progress import pbar
+
 # --------------------------------------------------------------------------
 # Binning
 # --------------------------------------------------------------------------
@@ -578,7 +580,7 @@ def invariance_test(
     psi = np.full(d, np.nan)
     nb_used = np.zeros(d, dtype=int)
 
-    for k in range(d):
+    for k in pbar(range(d), unit="coord", desc="  breslow-day"):
         codes = bin_coordinate(phi[:, k], n_bins=n_bins, zero_atom=zero_atom)
         a, b, c, dd = stratified_tables(codes, y_pos, g, min_cell=min_cell)
         nb_used[k] = a.size
@@ -642,7 +644,7 @@ def bootstrap_pvalues(
     g = np.asarray(g).ravel().astype(int)
 
     out_p, out_obs, out_cols = [], [], []
-    for k in np.asarray(cols, dtype=int):
+    for k in pbar(np.asarray(cols, dtype=int), unit="coord", desc="  bootstrap"):
         codes = bin_coordinate(phi[:, k], n_bins=n_bins, zero_atom=zero_atom)
         a, b, c, d = stratified_tables(codes, y_pos, g, min_cell=min_cell)
         if a.size < 2:

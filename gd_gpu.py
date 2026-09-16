@@ -68,6 +68,8 @@ import argparse
 
 import numpy as np
 
+from progress import pbar
+
 
 def logistic_gd_torch(
     X: np.ndarray,
@@ -80,6 +82,8 @@ def logistic_gd_torch(
     device: str = "cuda",
     dtype: str = "float32",
     tf32: bool = False,
+    progress: bool = True,
+    c: np.ndarray | None = None,
 ) -> dict:
     """Drop-in replacement for `common.logistic_gd`, identical contract.
 
@@ -141,10 +145,38 @@ def logistic_gd_torch(
     rec = {"t": [], "z": [], "err_maj": [], "err_min": [], "train_loss": []}
     scale = h / N
 
+    # The bar is driven in CHUNKS and its postfix is refreshed only at the
+    # checkpoints, where a host sync already happens anyway. Reading any GPU
+    # tensor on the other steps to feed a progress bar would add a sync per
+    # step and dominate the runtime -- exactly the trap the checkpoint design
+    # exists to avoid. Bar bookkeeping itself is pure Python and never touches
+    # the device.
+    chunk = max(1, T // 2000)
+    bar = pbar(total=T, unit="step", leave=False,
+               desc=f"GD n={N} d={d} {dtype}{'' if c is None else ' weighted'}"
+               ) if progress else None
+
+    # Per-sample weights c_i realise the population mixture
+    #     L(w) = (1-eps) E_maj[.] + eps E_min[.]
+    # with the SAMPLE HELD FIXED, which is the whole point of --mode reweight:
+    # the point set, the margin and separability no longer move with eps.
+    #
+    # The c is None branch keeps the ORIGINAL expression verbatim rather than
+    # routing uniform weights through the weighted one. Measured in numpy, the
+    # two forms agree only to ~1.1e-16 (about 2 ulp) because the scalar
+    # multiply moves relative to the matmul. That is harmless arithmetic, but
+    # the unweighted path is the one --validate compares against the certified
+    # common.logistic_gd, and that comparison is worth keeping bit-exact.
+    ct = None if c is None else torch.as_tensor(
+        np.asarray(c, dtype=np.float64), dtype=td, device=device)
+
     for t in range(1, T + 1):
         u = Xy @ w
         one_minus_p = torch.sigmoid(-u)          # == 1 - sigmoid(u), stable
-        w += scale * (Xy.T @ one_minus_p)
+        if ct is None:
+            w += scale * (Xy.T @ one_minus_p)
+        else:
+            w += h * (Xy.T @ (ct * one_minus_p))
 
         # .item() forces a host sync, so it happens only at the ~60 checkpoints.
         # Syncing every step would dominate the runtime entirely.
@@ -157,13 +189,76 @@ def logistic_gd_torch(
                 float(one_minus_p[m_min].mean()) if has_min else np.nan)
             # logaddexp(0, -u) == softplus(-u), the logistic loss per sample.
             rec["train_loss"].append(float(F.softplus(-u).mean()))
+            if bar is not None:
+                bar.set_postfix_str(
+                    f"z={h * t:.4g} err_min={rec['err_min'][-1]:.3e}")
 
+        if bar is not None and t % chunk == 0:
+            bar.update(chunk)
+
+    if bar is not None:
+        bar.close()
     return {k: np.asarray(v) for k, v in rec.items()}
 
 
 # --------------------------------------------------------------------------
 # Validation -- run before trusting anything this file produces
 # --------------------------------------------------------------------------
+
+
+def logistic_gd_weighted(
+    X: np.ndarray,
+    y: np.ndarray,
+    g: np.ndarray,
+    c: np.ndarray,
+    h: float = 0.01,
+    T: int = 100_000,
+    n_ckpt: int = 60,
+    w0: np.ndarray | None = None,
+) -> dict:
+    """numpy weighted GD -- the CPU path for --mode reweight, and the reference
+    the torch weighted path is validated against.
+
+    This lives here and NOT in common.py for the same reason logistic_gd_torch
+    does: common.py is a byte-for-byte copy whose sha256 is what transfers
+    Estimator_Validation's certification, and adding a weights argument to it
+    would break that transfer for a feature change.
+
+    `c` are per-sample weights that should sum to 1, so that the step is the
+    empirical version of the population gradient. At c_i = 1/N this reduces to
+    common.logistic_gd up to floating-point reassociation (~2 ulp).
+    """
+    N, d = X.shape
+    c = np.asarray(c, dtype=np.float64)
+    if c.shape != (N,):
+        raise ValueError(f"c must have shape ({N},), got {c.shape}")
+    Xy = (y[:, None] * X).astype(np.float64)
+    w = np.zeros(d) if w0 is None else w0.astype(np.float64).copy()
+
+    ckpts = np.unique(np.round(np.logspace(0, np.log10(T), n_ckpt)).astype(int))
+    ckpts = ckpts[(ckpts >= 1) & (ckpts <= T)]
+    ck = set(int(t) for t in ckpts)
+
+    m_maj, m_min = (g == 0), (g == 1)
+    rec = {"t": [], "z": [], "err_maj": [], "err_min": [], "train_loss": []}
+
+    chunk = max(1, T // 500)
+    bar = pbar(total=T, unit="step", leave=False, desc=f"GD-cpu n={N} d={d}")
+    for t in range(1, T + 1):
+        u = Xy @ w
+        one_minus_p = np.where(u >= 0, np.exp(-u) / (1.0 + np.exp(-u)),
+                               1.0 / (1.0 + np.exp(u)))
+        w += h * (Xy.T @ (c * one_minus_p))
+        if t in ck:
+            rec["t"].append(t)
+            rec["z"].append(h * t)
+            rec["err_maj"].append(float(one_minus_p[m_maj].mean()) if m_maj.any() else np.nan)
+            rec["err_min"].append(float(one_minus_p[m_min].mean()) if m_min.any() else np.nan)
+            rec["train_loss"].append(float(np.mean(np.logaddexp(0.0, -u))))
+        if t % chunk == 0:
+            bar.update(chunk)
+    bar.close()
+    return {k: np.asarray(v) for k, v in rec.items()}
 
 
 def _make_problem(n=4000, d=64, eps=0.25, seed=0):
@@ -226,6 +321,35 @@ def validate(T=3000, h=0.05, device="cuda", tol=2e-3) -> bool:
         print(f"  [{dt:<7}] {label:<17} max rel diff: "
               f"err_maj {rmaj:.2e}  err_min {rmin:.2e}  loss {rl:.2e}"
               f"   worst {worst:.2e}{tag}")
+
+    # The weighted path has no certified reference to check against, so it is
+    # checked the same way the unweighted one was: an independent numpy
+    # implementation of the same recurrence, run side by side. A bug here would
+    # silently rescale the gradient and produce plausible wrong curves.
+    cw = np.where(g == 1, 0.6 / max(1, int((g == 1).sum())),
+                  0.4 / max(1, int((g == 0).sum())))
+    ref_w = logistic_gd_weighted(X, y, g, c=cw, h=h, T=T)
+    got_w = logistic_gd_torch(X, y, g, c=cw, h=h, T=T, device=device,
+                              dtype="float64")
+    rw = max(_max_rel(got_w["err_maj"], ref_w["err_maj"]),
+             _max_rel(got_w["err_min"], ref_w["err_min"]))
+    passed_w = rw <= tol
+    ok = ok and passed_w
+    print(f"  [weighted] float64 vs numpy weighted reference: max rel diff "
+          f"{rw:.2e}" + ("  <= tol" if passed_w else f"  !! EXCEEDS tol {tol:g}"))
+
+    # And the reduction property: uniform weights must reproduce the unweighted
+    # run. If this drifts, --mode reweight and --mode subsample are not running
+    # the same recurrence and nothing can be compared across them.
+    uni = np.full(y.size, 1.0 / y.size)
+    got_u = logistic_gd_torch(X, y, g, c=uni, h=h, T=T, device=device,
+                              dtype="float64")
+    ru = max(_max_rel(got_u["err_maj"], ref["err_maj"]),
+             _max_rel(got_u["err_min"], ref["err_min"]))
+    passed_u = ru <= tol
+    ok = ok and passed_u
+    print(f"  [weighted] uniform c reduces to the unweighted run: max rel diff "
+          f"{ru:.2e}" + ("  <= tol" if passed_u else f"  !! EXCEEDS tol {tol:g}"))
 
     print("\nAGREEMENT OK" if ok else "\nAGREEMENT FAILED -- do not use the GPU path")
     return ok

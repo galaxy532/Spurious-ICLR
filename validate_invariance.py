@@ -80,6 +80,8 @@ import sys
 
 import numpy as np
 
+from progress import pbar
+
 from invariance import (
     bh_fdr, breslow_day, bin_coordinate, effect_sizes, invariance_identify,
     invariance_test, mantel_haenszel_or, stratified_tables,
@@ -248,7 +250,7 @@ def _f1_over_seeds(a_maj, a_min, n, n_seeds=3, rule="inv", n_bins=8, **kw) -> fl
     threshold and make the suite flap.
     """
     out = []
-    for sd in range(n_seeds):
+    for sd in pbar(range(n_seeds), unit="seed", desc="    seeds", leave=False):
         phi, y, g, t = make_data(a_maj=a_maj, a_min=a_min, n=n, seed=sd, **kw)
         if rule == "inv":
             idx = invariance_identify(phi, y, g, n_bins=n_bins)["idx_s"]
@@ -296,7 +298,7 @@ def c2b_power_curve(n_seeds=3, **kw) -> dict:
         CelebA train           n = 162,770
     """
     rows = []
-    for n in (6_000, 12_000, 20_000, 60_000, 160_000):
+    for n in pbar((6_000, 12_000, 20_000, 60_000, 160_000), unit="n", desc="  power curve"):
         rows.append({
             "n": n,
             "invariance_f1": _f1_over_seeds(2.0, 1.0, n, n_seeds, "inv", **kw),
