@@ -1,0 +1,410 @@
+{
+ "waterbirds_clip_train": {
+  "rows": [
+   {
+    "separable": false,
+    "how": "LP proof (max margin is 0)",
+    "margin": 0.0,
+    "n_viol_logistic": 177,
+    "rho_lp": -0.0,
+    "secs": 573.0,
+    "margin_n": 0.0,
+    "eps": null,
+    "label": "full",
+    "n": 4795,
+    "n_min": 240
+   },
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.08610789905770626,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 50.8,
+    "margin_n": 0.0038293051938268737,
+    "eps": 0.005,
+    "label": "0.005",
+    "n": 4578,
+    "n_min": 23
+   },
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.04969696510141058,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 88.6,
+    "margin_n": 0.002210314238550484,
+    "eps": 0.01,
+    "label": "0.01",
+    "n": 4601,
+    "n_min": 46
+   },
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.00724165147435391,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 380.5,
+    "margin_n": 0.00032188586946556584,
+    "eps": 0.02,
+    "label": "0.02",
+    "n": 4648,
+    "n_min": 93
+   },
+   {
+    "separable": false,
+    "how": "LP proof (max margin is 0)",
+    "margin": 0.0,
+    "n_viol_logistic": 128,
+    "rho_lp": -0.0,
+    "secs": 644.1,
+    "margin_n": 0.0,
+    "eps": 0.035,
+    "label": "0.035",
+    "n": 4720,
+    "n_min": 165
+   },
+   {
+    "separable": false,
+    "how": "LP proof (max margin is 0)",
+    "margin": 0.0,
+    "n_viol_logistic": 177,
+    "rho_lp": -0.0,
+    "secs": 589.9,
+    "margin_n": 0.0,
+    "eps": 0.05,
+    "label": "0.05",
+    "n": 4795,
+    "n_min": 240
+   }
+  ],
+  "meta": {
+   "dataset": "waterbirds",
+   "split": "train",
+   "backbone": "clip",
+   "backbone_kind": "openclip",
+   "model_id": "ViT-B-32/openai",
+   "task_epochs": 0,
+   "d": 512,
+   "n": 4795,
+   "standardized": true,
+   "eps": 0.05005213764337852
+  },
+  "eps_list": [
+   0.005,
+   0.01,
+   0.02,
+   0.035,
+   0.05
+  ],
+  "seed": 0
+ },
+ "waterbirds_dinov2_train": {
+  "rows": [
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.5506020503059962,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 8.3,
+    "margin_n": 0.019878908275901757,
+    "eps": null,
+    "label": "full",
+    "n": 4795,
+    "n_min": 240
+   },
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.7739496067287234,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 6.6,
+    "margin_n": 0.02794726989639433,
+    "eps": 0.005,
+    "label": "0.005",
+    "n": 4578,
+    "n_min": 23
+   },
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.7480641400530416,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 6.5,
+    "margin_n": 0.027013118586109115,
+    "eps": 0.01,
+    "label": "0.01",
+    "n": 4601,
+    "n_min": 46
+   },
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.680981209712219,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 6.4,
+    "margin_n": 0.024587998589652167,
+    "eps": 0.02,
+    "label": "0.02",
+    "n": 4648,
+    "n_min": 93
+   },
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.6279050879050632,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 7.0,
+    "margin_n": 0.022673175927712827,
+    "eps": 0.035,
+    "label": "0.035",
+    "n": 4720,
+    "n_min": 165
+   },
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.5506026557323144,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 8.3,
+    "margin_n": 0.01987893013418259,
+    "eps": 0.05,
+    "label": "0.05",
+    "n": 4795,
+    "n_min": 240
+   }
+  ],
+  "meta": {
+   "dataset": "waterbirds",
+   "split": "train",
+   "backbone": "dinov2",
+   "backbone_kind": "timm",
+   "model_id": "vit_base_patch14_dinov2.lvd142m",
+   "task_epochs": 0,
+   "d": 768,
+   "n": 4795,
+   "standardized": true,
+   "eps": 0.05005213764337852
+  },
+  "eps_list": [
+   0.005,
+   0.01,
+   0.02,
+   0.035,
+   0.05
+  ],
+  "seed": 0
+ },
+ "waterbirds_erm_rn50_train": {
+  "rows": [
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.0037263405993255283,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 387.6,
+    "margin_n": 0.00013236025979091273,
+    "eps": null,
+    "label": "full",
+    "n": 4795,
+    "n_min": 240
+   },
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.02380322628212756,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 280.8,
+    "margin_n": 0.0008528663925333876,
+    "eps": 0.005,
+    "label": "0.005",
+    "n": 4578,
+    "n_min": 23
+   },
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.01700834729143551,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 354.9,
+    "margin_n": 0.0006087023185336,
+    "eps": 0.01,
+    "label": "0.01",
+    "n": 4601,
+    "n_min": 46
+   },
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.011045802700918197,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 378.9,
+    "margin_n": 0.0003940654168020106,
+    "eps": 0.02,
+    "label": "0.02",
+    "n": 4648,
+    "n_min": 93
+   },
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.007364621977135516,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 371.9,
+    "margin_n": 0.0002627690639137929,
+    "eps": 0.035,
+    "label": "0.035",
+    "n": 4720,
+    "n_min": 165
+   },
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.0037326022515604663,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 382.9,
+    "margin_n": 0.00013258267475659962,
+    "eps": 0.05,
+    "label": "0.05",
+    "n": 4795,
+    "n_min": 240
+   }
+  ],
+  "meta": {
+   "dataset": "waterbirds",
+   "split": "train",
+   "backbone": "erm_rn50",
+   "backbone_kind": "torchvision",
+   "model_id": "resnet50",
+   "task_epochs": 10,
+   "d": 2048,
+   "n": 4795,
+   "standardized": true,
+   "eps": 0.05005213764337852
+  },
+  "eps_list": [
+   0.005,
+   0.01,
+   0.02,
+   0.035,
+   0.05
+  ],
+  "seed": 0
+ },
+ "waterbirds_under_rn50_train": {
+  "rows": [
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.016319504146261873,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 346.3,
+    "margin_n": 0.00041412217159988914,
+    "eps": null,
+    "label": "full",
+    "n": 4795,
+    "n_min": 240
+   },
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.09677837914075801,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 72.9,
+    "margin_n": 0.0024469060270609247,
+    "eps": 0.005,
+    "label": "0.005",
+    "n": 4578,
+    "n_min": 23
+   },
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.08610685105247674,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 80.3,
+    "margin_n": 0.002177767209562671,
+    "eps": 0.01,
+    "label": "0.01",
+    "n": 4601,
+    "n_min": 46
+   },
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.04485455208687741,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 150.2,
+    "margin_n": 0.0011353020115101448,
+    "eps": 0.02,
+    "label": "0.02",
+    "n": 4648,
+    "n_min": 93
+   },
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.02711460696767585,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 240.0,
+    "margin_n": 0.0006871799979424153,
+    "eps": 0.035,
+    "label": "0.035",
+    "n": 4720,
+    "n_min": 165
+   },
+   {
+    "separable": true,
+    "how": "logistic (constructive)",
+    "margin": 0.016319274278345015,
+    "n_viol_logistic": 0,
+    "rho_lp": null,
+    "secs": 355.4,
+    "margin_n": 0.0004141163384936834,
+    "eps": 0.05,
+    "label": "0.05",
+    "n": 4795,
+    "n_min": 240
+   }
+  ],
+  "meta": {
+   "dataset": "waterbirds",
+   "split": "train",
+   "backbone": "under_rn50",
+   "backbone_kind": "torchvision",
+   "model_id": "resnet50",
+   "task_epochs": 1,
+   "d": 2048,
+   "n": 4795,
+   "standardized": true,
+   "eps": 0.05005213764337852
+  },
+  "eps_list": [
+   0.005,
+   0.01,
+   0.02,
+   0.035,
+   0.05
+  ],
+  "seed": 0
+ }
+}
