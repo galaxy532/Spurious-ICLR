@@ -1,0 +1,99 @@
+{
+ "backbone": "erm_rn50",
+ "dataset": "waterbirds",
+ "retrain_on": "val",
+ "n_fit": 1199,
+ "separable": true,
+ "margin": 0.23921285397971614,
+ "eps": [
+  0.01,
+  0.05,
+  0.2,
+  0.5
+ ],
+ "n_sub": 5,
+ "subsample_size": 532,
+ "columns": [
+  "A_eps0.01",
+  "A_eps0.05",
+  "A_eps0.2",
+  "A_eps0.5",
+  "B_0",
+  "B_1",
+  "B_2",
+  "B_3",
+  "B_4"
+ ],
+ "h": 0.05,
+ "T": 2000000,
+ "p2": [
+  {
+   "draw": 0,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.33999999999999997,
+   "cos_to_A": 0.5305351679224886,
+   "subsample_separable": true
+  },
+  {
+   "draw": 1,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.31999999999999995,
+   "cos_to_A": 0.5212612574585659,
+   "subsample_separable": true
+  },
+  {
+   "draw": 2,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.33999999999999997,
+   "cos_to_A": 0.511378226421449,
+   "subsample_separable": true
+  },
+  {
+   "draw": 3,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.38,
+   "cos_to_A": 0.5409802767366467,
+   "subsample_separable": true
+  },
+  {
+   "draw": 4,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.31999999999999995,
+   "cos_to_A": 0.5620453799863032,
+   "subsample_separable": true
+  }
+ ],
+ "dfr": [
+  {
+   "C": 0.1,
+   "test_worst_acc": 0.4842572062084257,
+   "test_mean_acc": 0.5429754918881602,
+   "cos_to_A": 0.30620052260883746
+  },
+  {
+   "C": 1.0,
+   "test_worst_acc": 0.5126385809312639,
+   "test_mean_acc": 0.5453917846047636,
+   "cos_to_A": 0.5099098625253247
+  },
+  {
+   "C": 10.0,
+   "test_worst_acc": 0.5117516629711751,
+   "test_mean_acc": 0.5429754918881602,
+   "cos_to_A": 0.546977387297995
+  },
+  {
+   "C": 100.0,
+   "test_worst_acc": 0.5019955654101995,
+   "test_mean_acc": 0.5353814290645496,
+   "cos_to_A": 0.5777170304017758
+  },
+  {
+   "C": 1000.0,
+   "test_worst_acc": 0.5002217294900222,
+   "test_mean_acc": 0.5352088367276493,
+   "cos_to_A": 0.5918141579388462
+  }
+ ],
+ "dfr_selected_on_val": null
+}

@@ -1,0 +1,48 @@
+== date
+Thu Sep 17 05:00:06 UTC 2026
+== git
+e3d322a027b5ccac79ccfa463c270cb1a248868a
+?? results/logs/
+?? session1_nohup.out
+== python
+Python 3.12.13
+numpy 2.5.3 sklearn 1.9.1
+torch 2.5.1+cu121 cuda 12.1 available True
+== nvidia-smi
+Thu Sep 17 05:00:09 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 550.144.03             Driver Version: 550.144.03     CUDA Version: 12.4     |
+|-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA RTX A6000               Off |   00000000:00:05.0 Off |                  Off |
+| 30%   35C    P8             18W /  300W |       2MiB /  49140MiB |      0%      Default |
+|                                         |                        |                  N/A |
++-----------------------------------------+------------------------+----------------------+
+                                                                                         
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI        PID   Type   Process name                              GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+== input bundles (size, md5 of first 1 MB)
+640580202  37e130a69068  features_celeba_clip_train.npz
+960756720  7ecd86a7ca3e  features_celeba_dinov2_train.npz
+1527085330  a5f2011796b1  features_celeba_erm_rn50_train.npz
+1623628560  90c1a7c5cca3  features_celeba_under_rn50_train.npz
+18870095  6a40a6d84d19  features_waterbirds_clip_train.npz
+28303407  a3e614f59ec5  features_waterbirds_dinov2_train.npz
+17414194  011731e95031  features_waterbirds_erm_rn50_train.npz
+19149047  12f1668436a4  features_waterbirds_under_rn50_train.npz
+78561910  66f8ca73de7b  features_celeba_clip_test.npz
+117831167  299a84516879  features_celeba_dinov2_test.npz
+190195546  bbbbd8f8378e  features_celeba_erm_rn50_test.npz
+203068415  c45382116f76  features_celeba_under_rn50_test.npz
+22803508  9084af363879  features_waterbirds_clip_test.npz
+34201505  4816349746b5  features_waterbirds_dinov2_test.npz
+21240697  de44c6aba517  features_waterbirds_erm_rn50_test.npz
+22037515  680d4c029570  features_waterbirds_under_rn50_test.npz

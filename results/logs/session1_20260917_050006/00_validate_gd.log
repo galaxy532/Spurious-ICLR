@@ -1,0 +1,5 @@
+validating the batched engine on cuda ...
+  [cuda float64] batched vs per-eps reference: max rel diff 3.93e-16  (tol 1e-09)  OK
+  [cuda float64] iterate margin recomputed directly: max abs diff 8.33e-17  OK
+  [cuda float32] precision budget: max rel diff 5.13e-07
+VALIDATION OK

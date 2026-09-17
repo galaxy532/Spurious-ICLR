@@ -1,0 +1,99 @@
+{
+ "backbone": "rwg_rn50",
+ "dataset": "waterbirds",
+ "retrain_on": "val",
+ "n_fit": 1199,
+ "separable": true,
+ "margin": 0.09350453008273484,
+ "eps": [
+  0.01,
+  0.05,
+  0.2,
+  0.5
+ ],
+ "n_sub": 5,
+ "subsample_size": 532,
+ "columns": [
+  "A_eps0.01",
+  "A_eps0.05",
+  "A_eps0.2",
+  "A_eps0.5",
+  "B_0",
+  "B_1",
+  "B_2",
+  "B_3",
+  "B_4"
+ ],
+ "h": 0.05,
+ "T": 2000000,
+ "p2": [
+  {
+   "draw": 0,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.36,
+   "cos_to_A": 0.5321401279373099,
+   "subsample_separable": true
+  },
+  {
+   "draw": 1,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.31999999999999995,
+   "cos_to_A": 0.5428656545515066,
+   "subsample_separable": true
+  },
+  {
+   "draw": 2,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.31999999999999995,
+   "cos_to_A": 0.5290384114475638,
+   "subsample_separable": true
+  },
+  {
+   "draw": 3,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.33999999999999997,
+   "cos_to_A": 0.49575767088112976,
+   "subsample_separable": true
+  },
+  {
+   "draw": 4,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.36,
+   "cos_to_A": 0.47750908794773744,
+   "subsample_separable": true
+  }
+ ],
+ "dfr": [
+  {
+   "C": 0.1,
+   "test_worst_acc": 0.7024922118380063,
+   "test_mean_acc": 0.7773558853986883,
+   "cos_to_A": 0.19199902603482677
+  },
+  {
+   "C": 1.0,
+   "test_worst_acc": 0.7184035476718403,
+   "test_mean_acc": 0.7293752157404211,
+   "cos_to_A": 0.5210770367281634
+  },
+  {
+   "C": 10.0,
+   "test_worst_acc": 0.6807095343680709,
+   "test_mean_acc": 0.7022782188470832,
+   "cos_to_A": 0.5652789133273296
+  },
+  {
+   "C": 100.0,
+   "test_worst_acc": 0.6456762749445676,
+   "test_mean_acc": 0.6781152916810493,
+   "cos_to_A": 0.5878435286282649
+  },
+  {
+   "C": 1000.0,
+   "test_worst_acc": 0.6062084257206208,
+   "test_mean_acc": 0.649292371418709,
+   "cos_to_A": 0.5631698310982132
+  }
+ ],
+ "dfr_selected_on_val": null
+}

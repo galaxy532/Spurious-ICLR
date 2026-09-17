@@ -1,0 +1,56 @@
+backbone gdro_rn50: d = 2048, task epochs = 10, train mode = gdro
+
+waterbirds/train  n = 4795
+  eps = P(g=1) = 0.0501
+  P(y=1 | g=0) = 0.2321   P(y=1 | g=1) = 0.2333
+  cells (y, attr):
+    y=0:  attr=0    3498   attr=1     184
+    y=1:  attr=0      56   attr=1    1057
+  smallest cell = 56   <-- BELOW 200; cell-conditional estimates will be refused
+  training (gdro) ...
+  train mode gdro: cell sizes [3498, 184, 1057, 56], dro eta 0.01
+  shuffle = True
+    epoch 1/10  ce 0.4144  acc 0.8263  q [0.22699999809265137, 0.2619999945163727, 0.2750000059604645, 0.23499999940395355]
+    epoch 2/10  ce 0.4813  acc 0.7839  q [0.2240000069141388, 0.2750000059604645, 0.2750000059604645, 0.22599999606609344]
+    epoch 3/10  ce 0.4944  acc 0.7773  q [0.210999995470047, 0.28999999165534973, 0.2879999876022339, 0.210999995470047]
+    epoch 4/10  ce 0.4737  acc 0.7789  q [0.20900000631809235, 0.28200000524520874, 0.3109999895095825, 0.19699999690055847]
+    epoch 5/10  ce 0.4272  acc 0.8140  q [0.2070000022649765, 0.28700000047683716, 0.32100000977516174, 0.1850000023841858]
+    epoch 6/10  ce 0.3880  acc 0.8302  q [0.20999999344348907, 0.28999999165534973, 0.3310000002384186, 0.16899999976158142]
+    epoch 7/10  ce 0.2693  acc 0.8872  q [0.2199999988079071, 0.2849999964237213, 0.3400000035762787, 0.15600000321865082]
+    epoch 8/10  ce 0.2111  acc 0.9160  q [0.21799999475479126, 0.2849999964237213, 0.35100001096725464, 0.1459999978542328]
+    epoch 9/10  ce 0.1879  acc 0.9281  q [0.2280000001192093, 0.2750000059604645, 0.3529999852180481, 0.14300000667572021]
+    epoch 10/10  ce 0.2101  acc 0.9203  q [0.23499999940395355, 0.27000001072883606, 0.3569999933242798, 0.1379999965429306]
+  saved trained backbone to models/waterbirds_gdro_rn50.pt
+
+waterbirds/train  n = 4795
+  eps = P(g=1) = 0.0501
+  P(y=1 | g=0) = 0.2321   P(y=1 | g=1) = 0.2333
+  cells (y, attr):
+    y=0:  attr=0    3498   attr=1     184
+    y=1:  attr=0      56   attr=1    1057
+  smallest cell = 56   <-- BELOW 200; cell-conditional estimates will be refused
+  embedding 4795 images ...
+  embedding: 100%|██████████| 75/75 [00:14<00:00,  5.24batch/s]
+  wrote features_v2_waterbirds_gdro_rn50_train.npz  phi (4795, 2048)  eps = 0.0501
+
+waterbirds/val  n = 1199
+  eps = P(g=1) = 0.4996
+  P(y=1 | g=0) = 0.2217   P(y=1 | g=1) = 0.2220
+  cells (y, attr):
+    y=0:  attr=0     467   attr=1     466
+    y=1:  attr=0     133   attr=1     133
+  smallest cell = 133   <-- BELOW 200; cell-conditional estimates will be refused
+  embedding 1199 images ...
+  embedding: 100%|██████████| 19/19 [00:06<00:00,  3.13batch/s]
+  wrote features_v2_waterbirds_gdro_rn50_val.npz  phi (1199, 2048)  eps = 0.4996
+
+waterbirds/test  n = 5794
+  eps = P(g=1) = 0.5000
+  P(y=1 | g=0) = 0.2216   P(y=1 | g=1) = 0.2216
+  cells (y, attr):
+    y=0:  attr=0    2255   attr=1    2255
+    y=1:  attr=0     642   attr=1     642
+  smallest cell = 642
+  embedding 5794 images ...
+  embedding: 100%|██████████| 91/91 [00:14<00:00,  6.35batch/s]
+  wrote features_v2_waterbirds_gdro_rn50_test.npz  phi (5794, 2048)  eps = 0.5000

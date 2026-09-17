@@ -1,0 +1,26 @@
+Downloading: "https://download.pytorch.org/models/resnet50-11ad3fa6.pth" to /root/.cache/torch/hub/checkpoints/resnet50-11ad3fa6.pth
+100%|██████████| 97.8M/97.8M [00:00<00:00, 279MB/s]
+backbone gdro_rn50: d = 2048, task epochs = 1, train mode = gdro
+
+waterbirds/train  n = 4795
+  eps = P(g=1) = 0.0501
+  P(y=1 | g=0) = 0.2321   P(y=1 | g=1) = 0.2333
+  cells (y, attr):
+    y=0:  attr=0    3498   attr=1     184
+    y=1:  attr=0      56   attr=1    1057
+  smallest cell = 56   <-- BELOW 200; cell-conditional estimates will be refused
+  training (gdro) ...
+  train mode gdro: cell sizes [3498, 184, 1057, 56], dro eta 0.01
+  shuffle = True
+    epoch 1/1  ce 0.5031  acc 0.7250  q [0.25, 0.24899999797344208, 0.25099998712539673, 0.25]
+
+waterbirds/train  n = 4795
+  eps = P(g=1) = 0.0501
+  P(y=1 | g=0) = 0.2321   P(y=1 | g=1) = 0.2333
+  cells (y, attr):
+    y=0:  attr=0    3498   attr=1     184
+    y=1:  attr=0      56   attr=1    1057
+  smallest cell = 56   <-- BELOW 200; cell-conditional estimates will be refused
+  embedding 4795 images ...
+  embedding: 100%|██████████| 75/75 [00:06<00:00, 11.00batch/s]
+  wrote smoke_waterbirds_gdro_rn50_train.npz  phi (4795, 2048)  eps = 0.0501

@@ -1,0 +1,99 @@
+{
+ "backbone": "dinov2",
+ "dataset": "waterbirds",
+ "retrain_on": "val",
+ "n_fit": 1199,
+ "separable": true,
+ "margin": 0.865141085065416,
+ "eps": [
+  0.01,
+  0.05,
+  0.2,
+  0.5
+ ],
+ "n_sub": 5,
+ "subsample_size": 532,
+ "columns": [
+  "A_eps0.01",
+  "A_eps0.05",
+  "A_eps0.2",
+  "A_eps0.5",
+  "B_0",
+  "B_1",
+  "B_2",
+  "B_3",
+  "B_4"
+ ],
+ "h": 0.05,
+ "T": 2000000,
+ "p2": [
+  {
+   "draw": 0,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.56,
+   "cos_to_A": 0.7295612093190553,
+   "subsample_separable": true
+  },
+  {
+   "draw": 1,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.54,
+   "cos_to_A": 0.7664276957714169,
+   "subsample_separable": true
+  },
+  {
+   "draw": 2,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.56,
+   "cos_to_A": 0.7773470604345608,
+   "subsample_separable": true
+  },
+  {
+   "draw": 3,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.6799999999999999,
+   "cos_to_A": 0.7519095509878934,
+   "subsample_separable": true
+  },
+  {
+   "draw": 4,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.54,
+   "cos_to_A": 0.7343360371514667,
+   "subsample_separable": true
+  }
+ ],
+ "dfr": [
+  {
+   "C": 0.1,
+   "test_worst_acc": 0.9454828660436138,
+   "test_mean_acc": 0.9551259924059372,
+   "cos_to_A": 0.42456657668391123
+  },
+  {
+   "C": 1.0,
+   "test_worst_acc": 0.9501557632398754,
+   "test_mean_acc": 0.9663444943044529,
+   "cos_to_A": 0.5628436253091793
+  },
+  {
+   "C": 10.0,
+   "test_worst_acc": 0.9579439252336449,
+   "test_mean_acc": 0.9663444943044529,
+   "cos_to_A": 0.6286116577155396
+  },
+  {
+   "C": 100.0,
+   "test_worst_acc": 0.9600886917960089,
+   "test_mean_acc": 0.9665170866413532,
+   "cos_to_A": 0.7407965989808285
+  },
+  {
+   "C": 1000.0,
+   "test_worst_acc": 0.9569844789356985,
+   "test_mean_acc": 0.9611667241974456,
+   "cos_to_A": 0.7628650744649329
+  }
+ ],
+ "dfr_selected_on_val": null
+}

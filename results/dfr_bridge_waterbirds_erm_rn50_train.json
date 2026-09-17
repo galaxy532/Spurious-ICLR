@@ -1,0 +1,110 @@
+{
+ "backbone": "erm_rn50",
+ "dataset": "waterbirds",
+ "retrain_on": "train",
+ "n_fit": 4795,
+ "separable": true,
+ "margin": 0.02659733836780392,
+ "eps": [
+  0.01,
+  0.05,
+  0.2,
+  0.5
+ ],
+ "n_sub": 5,
+ "subsample_size": 224,
+ "columns": [
+  "A_eps0.01",
+  "A_eps0.05",
+  "A_eps0.2",
+  "A_eps0.5",
+  "B_0",
+  "B_1",
+  "B_2",
+  "B_3",
+  "B_4"
+ ],
+ "h": 0.05,
+ "T": 2000000,
+ "p2": [
+  {
+   "draw": 0,
+   "frac_all_deleted": 0.9532846715328467,
+   "frac_tight_deleted": 0.88,
+   "cos_to_A": 0.08293502588632706,
+   "subsample_separable": true
+  },
+  {
+   "draw": 1,
+   "frac_all_deleted": 0.9532846715328467,
+   "frac_tight_deleted": 0.86,
+   "cos_to_A": 0.08412606485690258,
+   "subsample_separable": true
+  },
+  {
+   "draw": 2,
+   "frac_all_deleted": 0.9532846715328467,
+   "frac_tight_deleted": 0.88,
+   "cos_to_A": 0.0805920126894601,
+   "subsample_separable": true
+  },
+  {
+   "draw": 3,
+   "frac_all_deleted": 0.9532846715328467,
+   "frac_tight_deleted": 0.86,
+   "cos_to_A": 0.08690734518087467,
+   "subsample_separable": true
+  },
+  {
+   "draw": 4,
+   "frac_all_deleted": 0.9532846715328467,
+   "frac_tight_deleted": 0.86,
+   "cos_to_A": 0.09539284509852908,
+   "subsample_separable": true
+  }
+ ],
+ "dfr": [
+  {
+   "C": 0.1,
+   "test_worst_acc": 0.5223946784922394,
+   "test_mean_acc": 0.5818087676907145,
+   "cos_to_A": 0.07133559086053536,
+   "val_worst_acc": 0.4957081545064378
+  },
+  {
+   "C": 1.0,
+   "test_worst_acc": 0.5649667405764967,
+   "test_mean_acc": 0.5837072833966171,
+   "cos_to_A": 0.08457842476375389,
+   "val_worst_acc": 0.5488721804511278
+  },
+  {
+   "C": 10.0,
+   "test_worst_acc": 0.5685358255451713,
+   "test_mean_acc": 0.5807732136693131,
+   "cos_to_A": 0.08162702669053384,
+   "val_worst_acc": 0.5413533834586466
+  },
+  {
+   "C": 100.0,
+   "test_worst_acc": 0.549889135254989,
+   "test_mean_acc": 0.5610976872626855,
+   "cos_to_A": 0.08901808596816774,
+   "val_worst_acc": 0.5278969957081545
+  },
+  {
+   "C": 1000.0,
+   "test_worst_acc": 0.5343680709534369,
+   "test_mean_acc": 0.5491888160165689,
+   "cos_to_A": 0.0878693854986123,
+   "val_worst_acc": 0.5278969957081545
+  }
+ ],
+ "dfr_selected_on_val": {
+  "C": 1.0,
+  "test_worst_acc": 0.5649667405764967,
+  "test_mean_acc": 0.5837072833966171,
+  "cos_to_A": 0.08457842476375389,
+  "val_worst_acc": 0.5488721804511278
+ }
+}

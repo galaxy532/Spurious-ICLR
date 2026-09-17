@@ -1,0 +1,99 @@
+{
+ "backbone": "gdro_rn50",
+ "dataset": "waterbirds",
+ "retrain_on": "val",
+ "n_fit": 1199,
+ "separable": true,
+ "margin": 0.20359022297679627,
+ "eps": [
+  0.01,
+  0.05,
+  0.2,
+  0.5
+ ],
+ "n_sub": 5,
+ "subsample_size": 532,
+ "columns": [
+  "A_eps0.01",
+  "A_eps0.05",
+  "A_eps0.2",
+  "A_eps0.5",
+  "B_0",
+  "B_1",
+  "B_2",
+  "B_3",
+  "B_4"
+ ],
+ "h": 0.05,
+ "T": 2000000,
+ "p2": [
+  {
+   "draw": 0,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.48,
+   "cos_to_A": 0.5248804868061642,
+   "subsample_separable": true
+  },
+  {
+   "draw": 1,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.48,
+   "cos_to_A": 0.5570949649216566,
+   "subsample_separable": true
+  },
+  {
+   "draw": 2,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.43999999999999995,
+   "cos_to_A": 0.5050968578047037,
+   "subsample_separable": true
+  },
+  {
+   "draw": 3,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.38,
+   "cos_to_A": 0.5380473506711455,
+   "subsample_separable": true
+  },
+  {
+   "draw": 4,
+   "frac_all_deleted": 0.5562969140950793,
+   "frac_tight_deleted": 0.42000000000000004,
+   "cos_to_A": 0.5180570406048469,
+   "subsample_separable": true
+  }
+ ],
+ "dfr": [
+  {
+   "C": 0.1,
+   "test_worst_acc": 0.7126385809312639,
+   "test_mean_acc": 0.7583707283396617,
+   "cos_to_A": 0.27114436437763756
+  },
+  {
+   "C": 1.0,
+   "test_worst_acc": 0.6791277258566978,
+   "test_mean_acc": 0.7262685536762168,
+   "cos_to_A": 0.47642169586197597
+  },
+  {
+   "C": 10.0,
+   "test_worst_acc": 0.6588785046728972,
+   "test_mean_acc": 0.7160856057991025,
+   "cos_to_A": 0.5135249230935804
+  },
+  {
+   "C": 100.0,
+   "test_worst_acc": 0.6838006230529595,
+   "test_mean_acc": 0.7088367276492924,
+   "cos_to_A": 0.544745968090347
+  },
+  {
+   "C": 1000.0,
+   "test_worst_acc": 0.6687361419068736,
+   "test_mean_acc": 0.6922678633068692,
+   "cos_to_A": 0.5225346748291743
+  }
+ ],
+ "dfr_selected_on_val": null
+}

@@ -1,0 +1,56 @@
+backbone erm_rn50: d = 2048, task epochs = 10, train mode = erm
+
+waterbirds/train  n = 4795
+  eps = P(g=1) = 0.0501
+  P(y=1 | g=0) = 0.2321   P(y=1 | g=1) = 0.2333
+  cells (y, attr):
+    y=0:  attr=0    3498   attr=1     184
+    y=1:  attr=0      56   attr=1    1057
+  smallest cell = 56   <-- BELOW 200; cell-conditional estimates will be refused
+  training (erm) ...
+  train mode erm: cell sizes [3498, 184, 1057, 56]
+  shuffle = False
+    epoch 1/10  ce 0.6318  acc 0.7525
+    epoch 2/10  ce 0.5724  acc 0.7729
+    epoch 3/10  ce 0.5023  acc 0.7789
+    epoch 4/10  ce 0.4355  acc 0.8092
+    epoch 5/10  ce 0.5602  acc 0.7679
+    epoch 6/10  ce 0.4123  acc 0.8346
+    epoch 7/10  ce 0.2770  acc 0.8913
+    epoch 8/10  ce 0.3750  acc 0.8507
+    epoch 9/10  ce 0.2807  acc 0.8916
+    epoch 10/10  ce 0.3301  acc 0.8644
+  saved trained backbone to models/waterbirds_erm_rn50.pt
+
+waterbirds/train  n = 4795
+  eps = P(g=1) = 0.0501
+  P(y=1 | g=0) = 0.2321   P(y=1 | g=1) = 0.2333
+  cells (y, attr):
+    y=0:  attr=0    3498   attr=1     184
+    y=1:  attr=0      56   attr=1    1057
+  smallest cell = 56   <-- BELOW 200; cell-conditional estimates will be refused
+  embedding 4795 images ...
+  embedding: 100%|██████████| 75/75 [00:14<00:00,  5.29batch/s]
+  wrote features_v2_waterbirds_erm_rn50_train.npz  phi (4795, 2048)  eps = 0.0501
+
+waterbirds/val  n = 1199
+  eps = P(g=1) = 0.4996
+  P(y=1 | g=0) = 0.2217   P(y=1 | g=1) = 0.2220
+  cells (y, attr):
+    y=0:  attr=0     467   attr=1     466
+    y=1:  attr=0     133   attr=1     133
+  smallest cell = 133   <-- BELOW 200; cell-conditional estimates will be refused
+  embedding 1199 images ...
+  embedding: 100%|██████████| 19/19 [00:05<00:00,  3.35batch/s]
+  wrote features_v2_waterbirds_erm_rn50_val.npz  phi (1199, 2048)  eps = 0.4996
+
+waterbirds/test  n = 5794
+  eps = P(g=1) = 0.5000
+  P(y=1 | g=0) = 0.2216   P(y=1 | g=1) = 0.2216
+  cells (y, attr):
+    y=0:  attr=0    2255   attr=1    2255
+    y=1:  attr=0     642   attr=1     642
+  smallest cell = 642
+  embedding 5794 images ...
+  embedding: 100%|██████████| 91/91 [00:16<00:00,  5.57batch/s]
+  wrote features_v2_waterbirds_erm_rn50_test.npz  phi (5794, 2048)  eps = 0.5000
