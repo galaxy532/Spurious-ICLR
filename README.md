@@ -1,9 +1,8 @@
 # Rebuttals_3 — ICLR resubmission experiments
 
-> **Read [`HANDOVER.md`](HANDOVER.md) first.** It carries the state of play as of
-> 16 September 2026: what is established, a retraction of an unverified claim,
-> the margin confound that invalidated arm A's first run, and what to ask for
-> next. The formal design change is `PREREGISTRATION.md`, Amendment 2.
+> **State of play (16 September 2026):** the margin confound that invalidated
+> arm A's first run, and the switch to reweighting, are recorded in
+> `PREREGISTRATION.md`, Amendment 2. Results are in `results/`.
 
 Third experiment repo for *Implicit Bias of Gradient Descent under Spurious
 Correlations*. Companion to `Rebuttals/` (Waterbirds identification) and

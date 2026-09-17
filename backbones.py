@@ -69,6 +69,11 @@ class BackboneSpec:
     train_epochs: int    # 0 => frozen pretrained, no task training
     image_size: int
     note: str
+    # How the backbone is trained on the task before being frozen.
+    #   "erm"  plain cross-entropy (the original four)
+    #   "rwg"  cross-entropy reweighted by inverse (y, g) cell frequency
+    #   "gdro" online group DRO over the (y, g) cells (Sagawa et al. 2020)
+    train_mode: str = "erm"
 
 
 REGISTRY: dict[str, BackboneSpec] = {
@@ -84,6 +89,20 @@ REGISTRY: dict[str, BackboneSpec] = {
         note="Identical to erm_rn50 but stopped after one epoch. Isolates the "
              "effect of representation QUALITY with architecture, data and "
              "optimiser held fixed.",
+    ),
+    "rwg_rn50": BackboneSpec(
+        key="rwg_rn50", kind="torchvision", model_id="resnet50",
+        dim=2048, train_epochs=10, image_size=224, train_mode="rwg",
+        note="Identical to erm_rn50 except the training loss is reweighted by "
+             "inverse (y, g) cell frequency. A different Phi produced by group "
+             "balancing AT FEATURE-TRAINING TIME; the last layer is still fitted "
+             "by plain GD downstream, so the theorem applies to it unchanged.",
+    ),
+    "gdro_rn50": BackboneSpec(
+        key="gdro_rn50", kind="torchvision", model_id="resnet50",
+        dim=2048, train_epochs=10, image_size=224, train_mode="gdro",
+        note="Identical to erm_rn50 except trained with online group DRO over "
+             "the four (y, g) cells. Same reasoning as rwg_rn50: only Phi changes.",
     ),
     "clip": BackboneSpec(
         key="clip", kind="openclip", model_id="ViT-B-32/openai",
