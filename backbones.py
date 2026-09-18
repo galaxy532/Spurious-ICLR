@@ -104,6 +104,17 @@ REGISTRY: dict[str, BackboneSpec] = {
         note="Identical to erm_rn50 except trained with online group DRO over "
              "the four (y, g) cells. Same reasoning as rwg_rn50: only Phi changes.",
     ),
+    "dinov2_l": BackboneSpec(
+        key="dinov2_l", kind="timm", model_id="vit_large_patch14_dinov2.lvd142m",
+        dim=1024, train_epochs=0, image_size=518,
+        note="Frozen DINOv2 ViT-L/14. Added 18 Sept 2026 for one reason: the "
+             "regime the theorem describes is reached in a time set by the "
+             "training set's margin, and dinov2 ViT-B is the only representation "
+             "so far whose Waterbirds margin (0.55) is large enough to reach it by "
+             "z = 1e5. A stronger frozen encoder is the cheapest way to get a "
+             "second such point -- a forward pass, no training. Whether its margin "
+             "is actually larger is the question, not an assumption.",
+    ),
     "clip": BackboneSpec(
         key="clip", kind="openclip", model_id="ViT-B-32/openai",
         dim=512, train_epochs=0, image_size=224,

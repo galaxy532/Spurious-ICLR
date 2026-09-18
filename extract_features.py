@@ -106,17 +106,28 @@ def cell_ids(y, g):
 
 
 def train_backbone(model, dim, paths, y, g, tf, epochs, bs, lr, wd, workers, device,
-                   mode="erm", dro_eta=0.01, max_batches=None, shuffle=None):
+                   mode="erm", dro_eta=0.01, max_batches=None, shuffle=None,
+                   optimizer="adamw", momentum=0.9, dro_absent="preserve"):
     """Fine-tune backbone + a linear head. Returns the backbone (head discarded).
 
     `mode` selects the loss; everything else is identical across modes.
+    `optimizer` is "adamw" (the legacy recipe) or "sgd" with `momentum` (the DFR
+    paper's recipe). `tf` is the transform used for TRAINING, which under the DFR
+    recipe includes augmentation and is therefore not the transform used to embed.
     """
     import torch
     import torch.nn as nn
 
     head = nn.Linear(dim, 2).to(device)
-    opt = torch.optim.AdamW(
-        list(model.parameters()) + list(head.parameters()), lr=lr, weight_decay=wd)
+    params = list(model.parameters()) + list(head.parameters())
+    if optimizer == "sgd":
+        opt = torch.optim.SGD(params, lr=lr, momentum=momentum, weight_decay=wd)
+    elif optimizer == "adamw":
+        opt = torch.optim.AdamW(params, lr=lr, weight_decay=wd)
+    else:
+        raise ValueError(f"unknown optimizer {optimizer!r}")
+    print(f"  optimizer {optimizer} lr {lr} wd {wd} bs {bs}"
+          + (f" momentum {momentum}" if optimizer == "sgd" else ""))
     ce = nn.CrossEntropyLoss(reduction="none")
     yt = torch.as_tensor(y, dtype=torch.long)
     cid = cell_ids(y, g)
@@ -136,6 +147,8 @@ def train_backbone(model, dim, paths, y, g, tf, epochs, bs, lr, wd, workers, dev
     # meaningless on sorted batches. --shuffle yes|no overrides for any mode.
     if shuffle is None:
         shuffle = mode != "erm"
+    if mode == "gdro":
+        print(f"  gdro absent-cell rule: {dro_absent}")
     print(f"  shuffle = {shuffle}")
     dl = _loader(paths, tf, bs, workers, shuffle=shuffle)
 
@@ -167,8 +180,23 @@ def train_backbone(model, dim, paths, y, g, tf, epochs, bs, lr, wd, workers, dev
                 gl = torch.where(present, sums / counts.clamp_min(1.0),
                                  torch.zeros_like(sums))
                 with torch.no_grad():
-                    q = q * torch.exp(dro_eta * gl.detach() * present.float())
-                    q = q / q.sum()
+                    if dro_absent == "preserve":
+                        # Update and renormalise WITHIN the cells present in this
+                        # batch, so the total mass of the absent cells does not
+                        # change. The plain rule (dro_absent="shrink", what this
+                        # script did before 18 Sept 2026) multiplies absent cells by
+                        # 1 and then renormalises over all four, which drains the
+                        # rare cells: the 56-point Waterbirds cell is missing from
+                        # about half the batches at bs 64, and its q fell from 0.25
+                        # to 0.138 over 10 epochs -- group DRO quietly
+                        # DOWN-weighting the group it exists to protect.
+                        mass = q[present].sum()
+                        upd = q[present] * torch.exp(dro_eta * gl[present])
+                        q = q.clone()
+                        q[present] = upd * (mass / upd.sum().clamp_min(1e-30))
+                    else:
+                        q = q * torch.exp(dro_eta * gl.detach() * present.float())
+                        q = q / q.sum()
                 loss = (q * gl).sum()
             else:
                 raise ValueError(f"unknown train mode {mode!r}")
@@ -201,6 +229,41 @@ def embed(model, paths, tf, bs, workers, device) -> np.ndarray:
     return np.concatenate(out, axis=0).astype(np.float64)
 
 
+# Two training recipes. "legacy" is what this script did until 17 Sept 2026 and is
+# kept so the old bundles can be reproduced. "dfr" is the recipe of Kirichenko et
+# al. 2023 (ICLR), Appendix C, for Waterbirds -- checked in the local PDF
+# 2204.02937v2.pdf: "We train all models with SGD with momentum decay of 0.9 and a
+# constant learning rate. On Waterbirds, we train the models for 100 epochs with
+# weight decay 1e-3, learning rate 1e-3 and batch size 32", with
+# RandomResizedCrop(224, scale=(0.7, 1.0), ratio=(0.75, 4/3)) and
+# RandomHorizontalFlip, and no early stopping. The legacy recipe (AdamW at lr 1e-3,
+# 10 epochs, no augmentation, and no shuffling for erm) left the ERM backbone at 86%
+# train accuracy and a train-set margin of 0.0037, far too small to reach the
+# regime the theorem describes within any affordable z.
+RECIPES = {
+    "legacy": dict(optimizer="adamw", momentum=0.0, lr=1e-3, wd=1e-4, bs=64,
+                   augment=False, epochs=None, shuffle=None),
+    "dfr": dict(optimizer="sgd", momentum=0.9, lr=1e-3, wd=1e-3, bs=32,
+                augment=True, epochs=100, shuffle=True),
+}
+
+
+def train_transform(augment: bool):
+    """The DFR paper's augmentation, or None to reuse the eval transform.
+
+    Only valid for the torchvision (224 px, ImageNet-normalised) backbones; the
+    frozen timm/CLIP encoders are never trained here, so they never need it."""
+    if not augment:
+        return None
+    import torchvision.transforms as T
+    return T.Compose([
+        T.RandomResizedCrop(224, scale=(0.7, 1.0), ratio=(0.75, 4.0 / 3.0)),
+        T.RandomHorizontalFlip(),
+        T.ToTensor(),
+        T.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)),
+    ])
+
+
 def train_stats(phi: np.ndarray):
     """Same arithmetic as common.standardize, but returning the statistics."""
     mu = phi.mean(axis=0, keepdims=True)
@@ -215,14 +278,32 @@ def main() -> None:
     ap.add_argument("--backbone", required=True, choices=list(REGISTRY))
     ap.add_argument("--splits", default="train,test")
     ap.add_argument("--root", default=DATA_ROOT)
-    ap.add_argument("--bs", type=int, default=64)
-    ap.add_argument("--lr", type=float, default=1e-3)
-    ap.add_argument("--wd", type=float, default=1e-4)
+    ap.add_argument("--recipe", default="legacy", choices=list(RECIPES),
+                    help="how a trained backbone is fine-tuned. legacy: the "
+                         "pre-18-Sept-2026 settings (AdamW, 10 epochs, no "
+                         "augmentation). dfr: Kirichenko et al. 2023 Appendix C "
+                         "(SGD momentum 0.9, lr 1e-3, wd 1e-3, bs 32, 100 epochs, "
+                         "crops + flips). Explicit flags below override the recipe.")
+    ap.add_argument("--bs", type=int, default=None)
+    ap.add_argument("--lr", type=float, default=None)
+    ap.add_argument("--wd", type=float, default=None)
+    ap.add_argument("--optimizer", default=None, choices=[None, "adamw", "sgd"])
+    ap.add_argument("--momentum", type=float, default=None)
+    ap.add_argument("--augment", default=None, choices=[None, "yes", "no"])
+    ap.add_argument("--dro-absent", default="preserve", choices=["preserve", "shrink"],
+                    help="preserve: cells missing from a batch keep their q "
+                         "(renormalisation happens within the present cells). "
+                         "shrink: the pre-18-Sept-2026 rule, which drains rare "
+                         "cells.")
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--epochs", type=int, default=None,
                     help="override the backbone's declared epoch count")
     ap.add_argument("--dro-eta", type=float, default=0.01,
                     help="group DRO step size for q (Sagawa et al. default 0.01)")
+    ap.add_argument("--model-suffix", default=None,
+                    help="appended to models/<dataset>_<backbone>; defaults to the "
+                         "recipe name, so a new recipe never overwrites an old "
+                         "model (a retrained backbone is a different Phi)")
     ap.add_argument("--shuffle", default="auto", choices=["auto", "yes", "no"],
                     help="auto: no for erm (original behaviour), yes for rwg/gdro")
     ap.add_argument("--max-batches", type=int, default=None,
@@ -240,12 +321,33 @@ def main() -> None:
         print("WARNING: no CUDA. This will take hours.")
 
     spec = REGISTRY[args.backbone]
-    epochs = spec.train_epochs if args.epochs is None else args.epochs
+    rec = RECIPES[args.recipe]
+    bs = args.bs if args.bs is not None else rec["bs"]
+    lr = args.lr if args.lr is not None else rec["lr"]
+    wd = args.wd if args.wd is not None else rec["wd"]
+    optimizer = args.optimizer or rec["optimizer"]
+    momentum = args.momentum if args.momentum is not None else rec["momentum"]
+    augment = {"yes": True, "no": False, None: rec["augment"]}[args.augment]
+    if args.epochs is not None:
+        epochs = args.epochs
+    elif rec["epochs"] is not None and spec.train_epochs > 0:
+        epochs = rec["epochs"]          # a recipe never trains a frozen backbone
+    else:
+        epochs = spec.train_epochs
+    shuffle = {"auto": rec["shuffle"], "yes": True, "no": False}[args.shuffle]
     model, tf, dim = get_backbone(args.backbone, device=device)
+    if augment and spec.kind != "torchvision":
+        print("  NOTE: augmentation is only defined for the torchvision backbones; "
+              "ignoring it here")
+        augment = False
     print(f"backbone {args.backbone}: d = {dim}, task epochs = {epochs}, "
-          f"train mode = {spec.train_mode}")
+          f"train mode = {spec.train_mode}, recipe = {args.recipe}")
 
-    mpath = os.path.join(args.model_dir, f"{args.dataset}_{args.backbone}.pt")
+    suffix = args.model_suffix if args.model_suffix is not None else args.recipe
+    mpath = os.path.join(args.model_dir,
+                         f"{args.dataset}_{args.backbone}"
+                         + (f"_{suffix}" if suffix and suffix != "legacy" else "")
+                         + ".pt")
     if epochs > 0:
         if args.load_model:
             model.load_state_dict(torch.load(mpath, map_location=device))
@@ -255,11 +357,13 @@ def main() -> None:
             p_tr, y_tr, g_tr, a_tr = load_metadata(args.dataset, "train", args.root)
             print(cell_report(y_tr, g_tr, a_tr, f"{args.dataset}/train"))
             print(f"  training ({spec.train_mode}) ...")
-            model = train_backbone(model, dim, p_tr, y_tr, g_tr, tf, epochs,
-                                   args.bs, args.lr, args.wd, args.workers, device,
+            ttf = train_transform(augment) or tf
+            model = train_backbone(model, dim, p_tr, y_tr, g_tr, ttf, epochs,
+                                   bs, lr, wd, args.workers, device,
                                    mode=spec.train_mode, dro_eta=args.dro_eta,
-                                   max_batches=args.max_batches,
-                                   shuffle={"auto": None, "yes": True, "no": False}[args.shuffle])
+                                   max_batches=args.max_batches, shuffle=shuffle,
+                                   optimizer=optimizer, momentum=momentum,
+                                   dro_absent=args.dro_absent)
             if not args.no_save_model:
                 os.makedirs(args.model_dir, exist_ok=True)
                 torch.save(model.state_dict(), mpath)
@@ -272,7 +376,7 @@ def main() -> None:
         paths, y01, g, attr = load_metadata(args.dataset, split, args.root)
         print(cell_report(y01, g, attr, f"{args.dataset}/{split}"))
         print(f"  embedding {len(paths)} images ...")
-        phi = embed(model, paths, tf, args.bs, args.workers, device)
+        phi = embed(model, paths, tf, bs, args.workers, device)
         if split == "train":
             mu, sd = train_stats(phi)
         # Standardise with TRAIN statistics -- see point 1 in the module docstring.
@@ -295,6 +399,10 @@ def main() -> None:
                 "d": int(phi.shape[1]), "n": int(phi.shape[0]),
                 "standardized": True,
                 "standardized_with": "train statistics",
+                "recipe": args.recipe, "optimizer": optimizer, "lr": lr, "wd": wd,
+                "bs": bs, "momentum": momentum, "augment": bool(augment),
+                "shuffle": shuffle, "dro_absent": args.dro_absent,
+                "model_path": mpath if epochs > 0 else None,
                 "eps": float(np.mean(g == 1)),
             },
         )

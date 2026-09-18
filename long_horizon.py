@@ -107,6 +107,12 @@ finishes, and a partial report is written every time the state is saved.
 Increasing --T on a later invocation extends a finished run instead of
 restarting it.
 
+PRECISION. On cuda the default dtype is "mixed": the weights are accumulated in
+float64 and the two matrix products run in float32. Plain float32 loses part of
+every late update (one step moves W by only a few float32 ulps by then) and biases
+beta upward by 0.03-0.05 at the last z; kappa is unaffected at the 0.004 level.
+Run `--validate-late` once on a new box to check the dtype end to end.
+
 Outputs: results/<tag>.md (tables), results/<tag>.json (all reported numbers),
 results/<tag>_curves.npz (every recorded point, so nothing needs re-running to
 make a plot). Default T = 2e6 (z = 1e5), the same horizon as the 16 Sept sweep.
@@ -186,16 +192,27 @@ class Engine:
         self.K = C.shape[1]
         self.m_maj = (g == 0)
         self.m_min = (g == 1)
+        # dtype "mixed": the weights are accumulated in float64 while the two
+        # matrix products stay in float32. Late in training one GD step changes W
+        # by only a few float32 ulps (measured: ~20 ulps at z = 1e5 on Waterbirds
+        # dinov2, fewer later), so a pure float32 run loses part of every update.
+        # That is invisible in kappa (<0.004) but biases beta upward by 0.03-0.05
+        # at the last z, measured against a float64 reference. The products
+        # themselves only need ~1e-7 relative accuracy, hence this split.
+        self.mixed = (dtype == "mixed")
         Xy = (y[:, None] * X).astype(np.float64)
         W0 = np.zeros((self.d, self.K)) if W0 is None else np.asarray(W0, np.float64)
 
         if device == "cpu":
-            npd = {"float32": np.float32, "float64": np.float64}[dtype]
+            npd = {"float32": np.float32, "float64": np.float64,
+                   "mixed": np.float32}[dtype]
             self.torch = None
             self.Xy = np.ascontiguousarray(Xy.astype(npd))
             self.XyT = np.ascontiguousarray(self.Xy.T)
             self.C = C.astype(npd)
-            self.W = W0.astype(npd)
+            self.W = W0.astype(np.float64 if self.mixed else npd)
+            # compute-precision copy of W; an alias for W unless we are mixed
+            self.Wc = np.empty((self.d, self.K), npd) if self.mixed else self.W
             self.U = np.empty((self.N, self.K), npd)
             self.E = np.empty_like(self.U)
             self.D = np.empty_like(self.U)
@@ -210,16 +227,20 @@ class Engine:
             if device.startswith("cuda") and not torch.cuda.is_available():
                 raise RuntimeError("device is cuda but torch.cuda.is_available() "
                                    "is False; refusing to fall back to CPU silently")
-            td = {"float32": torch.float32, "float64": torch.float64}[dtype]
+            td = {"float32": torch.float32, "float64": torch.float64,
+                  "mixed": torch.float32}[dtype]
             self.Xy = torch.as_tensor(Xy, dtype=td, device=device)
             self.C = torch.as_tensor(C, dtype=td, device=device)
-            self.W = torch.as_tensor(W0, dtype=td, device=device).clone()
+            self.W = torch.as_tensor(
+                W0, dtype=torch.float64 if self.mixed else td, device=device).clone()
             self.mmaj_t = torch.as_tensor(self.m_maj, device=device)
             self.mmin_t = torch.as_tensor(self.m_min, device=device)
 
     # -- one step; returns U and Q of the iterate entering the step ------------
     def _step_numpy(self):
-        np.matmul(self.Xy, self.W, out=self.U)
+        if self.mixed:
+            np.copyto(self.Wc, self.W)      # float64 weights -> float32 products
+        np.matmul(self.Xy, self.Wc, out=self.U)
         np.abs(self.U, out=self.E)
         np.negative(self.E, out=self.E)
         np.exp(self.E, out=self.E)                       # e = exp(-|u|)
@@ -231,17 +252,19 @@ class Engine:
         np.multiply(self.Q, self.C, out=self.D)          # reuse D as C*Q
         np.matmul(self.XyT, self.D, out=self.G)
         self.G *= self.h
-        self.W += self.G
+        self.W += self.G                    # in mixed mode: float64 += float32
 
     def _step_torch(self, record):
         torch = self.torch
-        U = self.Xy @ self.W
+        Wc = self.W.to(self.Xy.dtype) if self.mixed else self.W
+        U = self.Xy @ Wc
         # same expression as gd_gpu.logistic_gd_torch (validated on the box);
         # torch.sigmoid is numerically stable for large |U|
         Q = torch.sigmoid(-U)
         if record:
             stats = self._stats_torch(U, Q)
-        self.W.add_(self.Xy.T @ (Q * self.C), alpha=self.h)
+        G = self.Xy.T @ (Q * self.C)
+        self.W.add_(G.double() if self.mixed else G, alpha=self.h)
         return stats if record else None
 
     def _stats_torch(self, U, Q):
@@ -321,6 +344,19 @@ def _lstsq_slope(x, y):
     return float(np.linalg.lstsq(A, y[m], rcond=None)[0][0])
 
 
+def _slope_resid(x, y):
+    """(-slope, max |residual|) of a least-squares line fit. The residual says
+    whether the points ARE a straight line: a kappa fitted through a visibly bent
+    curve is a number, not an estimate of an exponent."""
+    m = np.isfinite(x) & np.isfinite(y)
+    if m.sum() < 3:
+        return float("nan"), float("nan")
+    A = np.vstack([x[m], np.ones(m.sum())]).T
+    coef = np.linalg.lstsq(A, y[m], rcond=None)[0]
+    resid = y[m] - A @ coef
+    return float(-coef[0]), float(np.max(np.abs(resid)))
+
+
 def report_z_values(z: np.ndarray) -> np.ndarray:
     """1, 3, 10, 30, ... up to the last z, each snapped to the nearest recorded z,
     keeping only those with a full [z/2, 2z] window inside the run (the last one
@@ -350,6 +386,9 @@ def analyze(t, stats, eps, h, ref_margin=None) -> dict:
     z = h * t
     eps = np.asarray(eps, float)
     le = np.log(eps)
+    if np.any(eps >= 1.0) or np.any(eps <= 0.0):
+        raise ValueError("eps must lie strictly between 0 and 1")
+    l1me = np.log(1.0 - eps)             # the majority's own weight share
     kmaj_theory = -_lstsq_slope(le, -np.log(1.0 - eps))
     zr = report_z_values(z)
     rows = []
@@ -357,13 +396,27 @@ def analyze(t, stats, eps, h, ref_margin=None) -> dict:
         i = int(np.argmin(np.abs(z - zv)))
         win = (z >= zv / 2) & (z <= zv * 2) & (z > 0)
         row = {"z": float(z[i]), "t": int(t[i])}
+        row["half_window"] = bool(z[-1] < zv * 2)
         for grp in ("min", "maj"):
             e = stats[f"err_{grp}"]                      # (n_ckpt, K)
             with np.errstate(divide="ignore"):
                 row[f"beta_{grp}"] = [
                     -_lstsq_slope(np.log(z[win]), np.log(e[win, k]))
                     if win.sum() >= 3 else float("nan") for k in range(len(eps))]
-                row[f"kappa_{grp}"] = -_lstsq_slope(le, np.log(e[i]))
+        # Each group is fitted against ITS OWN weight share, which is how the
+        # theorem writes the rates: err_min ~ c/(eps z) and err_maj ~ c/((1-eps) z).
+        # So kappa_min -> 1 and kappa_maj -> 1, both grid-independent. Fitting the
+        # majority against log(eps) instead (what this script did before 18 Sept
+        # 2026) gives a target that depends on the eps grid -- -0.157 for
+        # 0.01,0.03,0.08,0.2,0.5 -- because log(1-eps) is not a straight line in
+        # log(eps). That legacy number is kept as kappa_maj_eps so the earlier
+        # reports stay comparable; kappa_maj is the one to read.
+        with np.errstate(divide="ignore"):
+            row["kappa_min"], row["kappa_min_resid"] = _slope_resid(
+                le, np.log(stats["err_min"][i]))
+            row["kappa_maj"], row["kappa_maj_resid"] = _slope_resid(
+                l1me, np.log(stats["err_maj"][i]))
+            row["kappa_maj_eps"] = -_lstsq_slope(le, np.log(stats["err_maj"][i]))
         row["eps_z_err_min"] = (eps * z[i] * stats["err_min"][i]).tolist()
         row["one_minus_eps_z_err_maj"] = ((1 - eps) * z[i] * stats["err_maj"][i]).tolist()
         for key in ("margin", "margin_maj", "margin_min", "acc_maj", "acc_min"):
@@ -399,12 +452,29 @@ def to_markdown(results: dict, partial: bool) -> str:
               f"full-split margin (lower bound, separability_check): "
               f"{_g(a['ref_margin'])}", ""]
         L += ["### eps-exponents at each z", "",
-              "Theory: for a group whose beta -> 1, its kappa -> 1 (g=1, min) or "
-              f"-> {a['kappa_maj_theory']:.3f} (g=0, maj). For a group whose beta -> "
-              "alpha > 1 the theorem gives no eps-dependence.", "",
-              "| z | kappa_min | kappa_maj |", "|---|---|---|"]
+              "Each group is fitted against its OWN weight share, as the theorem "
+              "writes it: err_min ~ c/(eps z) gives kappa_min -> 1 (regression of "
+              "log err_min on log eps), err_maj ~ c/((1-eps) z) gives kappa_maj -> 1 "
+              "(regression of log err_maj on log(1-eps)). Both targets are 1 and "
+              "neither depends on the eps grid. Each fit uses the "
+              f"{len(eps)} eps values at that single z.", "",
+              "'max resid' is the largest residual of that 5-point fit: it says "
+              "whether the points are a straight line at all. Below ~0.02 the "
+              "exponent means something; at 0.1 or more the curve is bent and the "
+              "slope is just a number. A group whose beta has not reached its limit "
+              "has no reason to show a clean power law in eps.", "",
+              "kappa_maj_eps is the superseded definition (majority fitted against "
+              f"log eps), whose grid-dependent target is {a['kappa_maj_theory']:.3f} "
+              "for this grid; it is kept only to compare with reports written "
+              "before 18 Sept 2026. For a group whose beta -> alpha > 1 the theorem "
+              "gives no eps-dependence at all.", "",
+              "| z | kappa_min (-> 1) | max resid | kappa_maj (-> 1) | max resid | "
+              "kappa_maj_eps (legacy) |", "|---|---|---|---|---|---|"]
         for row in a["rows"]:
-            L.append(f"| {row['z']:.3g} | {_f(row['kappa_min'])} | {_f(row['kappa_maj'])} |")
+            L.append(f"| {row['z']:.3g} | {_f(row['kappa_min'])} | "
+                     f"{_f(row.get('kappa_min_resid'))} | {_f(row['kappa_maj'])} | "
+                     f"{_f(row.get('kappa_maj_resid'))} | "
+                     f"{_f(row.get('kappa_maj_eps'))} |")
         L += ["", "### decay exponents in z (one column per eps)", "",
               "Theory: alpha < 1: both groups -> 1. alpha > 1: the larger-r-margin "
               "group -> alpha, the other -> 1.", ""]
@@ -413,9 +483,12 @@ def to_markdown(results: dict, partial: bool) -> str:
         for grp in ("min", "maj"):
             L += [f"beta_{grp}:", "", head, sep]
             for row in a["rows"]:
-                L.append(f"| {row['z']:.3g} | " +
+                mark = " (half window)" if row.get("half_window") else ""
+                L.append(f"| {row['z']:.3g}{mark} | " +
                          " | ".join(_f(v) for v in row[f"beta_{grp}"]) + " |")
-            L.append("")
+            L += ["", "A row marked (half window) is fitted on [z/2, z] only, "
+                  "because the run stops at that z; it is biased and should not be "
+                  "read as the limit.", ""]
         L += ["### scaled errors (theory: constant in z and eps for a group whose beta -> 1)", ""]
         for name in ("eps_z_err_min", "one_minus_eps_z_err_maj"):
             L += [f"{name}:", "", head, sep]
@@ -497,7 +570,7 @@ def validate(device="cpu", T=3000, h=0.05, eps=(0.02, 0.1, 0.5)) -> bool:
     ref = [logistic_gd_weighted(X, y, g, c=C[:, k], h=h, T=T, n_ckpt=40)
            for k in range(len(eps))]
     ok = True
-    for dtype, tol in (("float64", 1e-9), ("float32", None)):
+    for dtype, tol in (("float64", 1e-9), ("mixed", None), ("float32", None)):
         eng = Engine(X, y, g, C, h, device=device, dtype=dtype)
         _, rec = eng.run_to(0, T, ref_ck)
         worst = 0.0
@@ -528,6 +601,53 @@ def validate(device="cpu", T=3000, h=0.05, eps=(0.02, 0.1, 0.5)) -> bool:
                   f"max abs diff {dm:.2e}  {'OK' if dm < 1e-9 else 'FAIL'}")
             del W
     print("VALIDATION OK" if ok else "VALIDATION FAILED")
+    return ok
+
+
+def validate_late(device="cpu", dtype="mixed", T=2_000_000, h=0.05,
+                  eps=(0.01, 0.1, 0.5), tol_err=5e-3, tol_beta=0.02) -> bool:
+    """LATE-TIME precision check: the dtype a long run will actually use, against a
+    float64 numpy reference, on a small problem taken all the way to T.
+
+    `validate` cannot see this problem. It compares dtypes at T = 3000, where they
+    agree to 5e-7. The error appears only once a single GD step changes the weights
+    by a few float32 ulps, which happens late: on a synthetic problem run to
+    z = 1e5 (T = 2e6), float32 against float64 was 1.6e-2 off in the soft error and
+    +0.04 in beta at the last z, while kappa moved by 0.004. This check refits both
+    and fails if the dtype under test is not within tol_err / tol_beta of the
+    reference. Small problem, so it costs a couple of minutes, not hours."""
+    from gd_gpu import _make_problem
+
+    X, y, g = _make_problem(n=400, d=30, eps=0.2, seed=5)
+    C = np.stack([eps_weights(g, e) for e in eps], axis=1)
+    ck = checkpoints(T, 20)
+    runs = {}
+    for label, dt, dev in (("test", dtype, device), ("ref", "float64", "cpu")):
+        eng = Engine(X, y, g, C, h, device=dev, dtype=dt)
+        bar = pbar(total=T, desc=f"  late check {label} ({dt} on {dev})", unit="step")
+        _, rec = eng.run_to(0, T, ck, bar=bar)
+        bar.close()
+        runs[label] = ([r[0] for r in rec],
+                       {k: np.array([r[1][k] for r in rec]) for k in STAT_KEYS})
+    t, st = runs["test"]
+    _, rf = runs["ref"]
+    worst_err = 0.0
+    for key in ("err_maj", "err_min"):
+        worst_err = max(worst_err, float(np.max(np.abs(st[key] / rf[key] - 1.0))))
+    a_t = analyze(t, st, eps, h)
+    a_r = analyze(t, rf, eps, h)
+    db = dk = 0.0
+    for rt, rr in zip(a_t["rows"], a_r["rows"]):
+        for grp in ("min", "maj"):
+            db = max(db, float(np.max(np.abs(np.array(rt[f"beta_{grp}"])
+                                             - np.array(rr[f"beta_{grp}"])))))
+            dk = max(dk, abs(rt[f"kappa_{grp}"] - rr[f"kappa_{grp}"]))
+    ok = (worst_err <= tol_err) and (db <= tol_beta)
+    print(f"  [{dtype} on {device}] vs float64 reference at T={T:.3g} "
+          f"(z={h * T:.3g}): worst relative error in the soft error "
+          f"{worst_err:.2e} (tol {tol_err:.0e}), worst beta difference {db:.3f} "
+          f"(tol {tol_beta:.2f}), worst kappa difference {dk:.3f}")
+    print("LATE VALIDATION OK" if ok else "LATE VALIDATION FAILED")
     return ok
 
 
@@ -587,8 +707,11 @@ def main():
     ap.add_argument("--per-decade", type=int, default=20,
                     help="recorded points per decade of t")
     ap.add_argument("--device", default="cpu")
-    ap.add_argument("--dtype", default=None, choices=[None, "float32", "float64"],
-                    help="default float32 on cuda, float64 on cpu")
+    ap.add_argument("--dtype", default=None,
+                    choices=[None, "float32", "float64", "mixed"],
+                    help="default 'mixed' on cuda (float64 weights, float32 matrix "
+                         "products) and float64 on cpu. Plain float32 biases beta "
+                         "at large z; see Engine and validate_late.")
     ap.add_argument("--max-hours", type=float, default=5.5,
                     help="stop cleanly (state saved) after this much wall-clock")
     ap.add_argument("--save-every-min", type=float, default=15.0)
@@ -600,6 +723,12 @@ def main():
     ap.add_argument("--benchmark", action="store_true",
                     help="time 300 steps per bundle, print projected hours, exit")
     ap.add_argument("--validate-only", action="store_true")
+    ap.add_argument("--validate-late", action="store_true",
+                    help="also run the late-time precision check (a couple of "
+                         "minutes) before the real run, and refuse to continue if "
+                         "it fails")
+    ap.add_argument("--late-T", type=int, default=2_000_000,
+                    help="horizon of the late-time check")
     ap.add_argument("--synthetic-alpha", default=None,
                     help="e.g. 0.6,1.6: run on Estimator_Validation synthetic data "
                          "with known alpha instead of bundles")
@@ -607,12 +736,16 @@ def main():
     ap.add_argument("--synthetic-n", type=int, default=9000)
     args = ap.parse_args()
 
-    dtype = args.dtype or ("float64" if args.device == "cpu" else "float32")
+    dtype = args.dtype or ("float64" if args.device == "cpu" else "mixed")
     eps = [float(x) for x in args.eps.split(",")]
 
-    print(f"validating the batched engine on {args.device} ...")
+    print(f"validating the batched engine on {args.device} (dtype {dtype}) ...")
     if not validate(device=args.device):
         raise SystemExit("validation failed; refusing to run")
+    if args.validate_late:
+        if not validate_late(device=args.device, dtype=dtype, T=args.late_T,
+                             h=args.h):
+            raise SystemExit("late-time validation failed; refusing to run")
     if args.validate_only:
         return
 

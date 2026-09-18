@@ -358,7 +358,10 @@ def main():
     ap.add_argument("--per-decade", type=int, default=10)
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--device", default="cpu")
-    ap.add_argument("--dtype", default=None, choices=[None, "float32", "float64"])
+    ap.add_argument("--dtype", default=None,
+                    choices=[None, "float32", "float64", "mixed"],
+                    help="default 'mixed' on cuda (float64 weights, float32 matrix "
+                         "products); see long_horizon.Engine")
     ap.add_argument("--max-hours", type=float, default=5.5)
     ap.add_argument("--save-every-min", type=float, default=15.0)
     ap.add_argument("--out-dir", default="results")
@@ -366,7 +369,7 @@ def main():
     ap.add_argument("--allow-per-split-standardization", action="store_true")
     ap.add_argument("--validate-only", action="store_true")
     args = ap.parse_args()
-    dtype = args.dtype or ("float64" if args.device == "cpu" else "float32")
+    dtype = args.dtype or ("float64" if args.device == "cpu" else "mixed")
 
     print(f"validating the batched GD engine on {args.device} ...")
     if not lh_validate(device=args.device):
