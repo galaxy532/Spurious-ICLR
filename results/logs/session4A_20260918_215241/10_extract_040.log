@@ -1,0 +1,14 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+DEGRADATION: resolution level 0.4 applied to group g == 0, at both  (tag res400)
+backbone dinov2: d = 768, task epochs = 0, train mode = erm, recipe = legacy
+
+waterbirds/train  n = 4795
+  eps = P(g=1) = 0.0501
+  P(y=1 | g=0) = 0.2321   P(y=1 | g=1) = 0.2333
+  cells (y, attr):
+    y=0:  attr=0    3498   attr=1     184
+    y=1:  attr=0      56   attr=1    1057
+  smallest cell = 56   <-- BELOW 200; cell-conditional estimates will be refused
+  embedding 4795 images ...  (4555 degraded)
+  embedding: 100%|██████████| 75/75 [02:05<00:00,  1.68s/batch]
+  wrote features_v4_waterbirds_dinov2_res400g0_train.npz  phi (4795, 768)  eps = 0.0501

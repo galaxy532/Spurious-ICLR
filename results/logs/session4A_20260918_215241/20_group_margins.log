@@ -1,0 +1,39 @@
+bundles:   0%|          | 0/7 [00:00<?, ?bundle/s]
+features_v4_waterbirds_dinov2_res100g0_train.npz
+
+  features_v4_waterbirds_dinov2_res1: 100%|██████████| 5/5 [00:00<00:00, 246.21C/s]
+bundles:  14%|█▍        | 1/7 [00:13<01:21, 13.52s/bundle]  margin 0.3517   gamma(g=0) 1.0000   gamma(g=1) 1.0000   tie -- the setting sits on the alpha = 1 transition   beta predicted 1.0000   plateau settled
+
+features_v4_waterbirds_dinov2_res140g0_train.npz
+
+  features_v4_waterbirds_dinov2_res1: 100%|██████████| 5/5 [00:00<00:00, 437.26C/s]
+bundles:  29%|██▊       | 2/7 [00:23<00:56, 11.22s/bundle]  margin 0.4091   gamma(g=0) 1.0000   gamma(g=1) 1.0000   tie -- the setting sits on the alpha = 1 transition   beta predicted 1.0000   plateau settled
+
+features_v4_waterbirds_dinov2_res200g0_train.npz
+
+  features_v4_waterbirds_dinov2_res2: 100%|██████████| 5/5 [00:00<00:00, 1395.31C/s]
+bundles:  43%|████▎     | 3/7 [00:32<00:41, 10.37s/bundle]  margin 0.5019   gamma(g=0) 1.0000   gamma(g=1) 1.0000   tie -- the setting sits on the alpha = 1 transition   beta predicted 1.0000   plateau settled
+
+features_v4_waterbirds_dinov2_res280g0_train.npz
+
+  features_v4_waterbirds_dinov2_res2: 100%|██████████| 5/5 [00:00<00:00, 781.76C/s]
+bundles:  57%|█████▋    | 4/7 [00:38<00:25,  8.65s/bundle]  margin 0.5614   gamma(g=0) 1.0000   gamma(g=1) 1.0000   tie -- the setting sits on the alpha = 1 transition   beta predicted 1.0000   plateau settled
+
+features_v4_waterbirds_dinov2_res400g0_train.npz
+
+  features_v4_waterbirds_dinov2_res4: 100%|██████████| 5/5 [00:00<00:00, 1669.71C/s]
+bundles:  71%|███████▏  | 5/7 [00:43<00:14,  7.30s/bundle]  margin 0.6032   gamma(g=0) 1.0000   gamma(g=1) 1.0000   tie -- the setting sits on the alpha = 1 transition   beta predicted 1.0000   plateau settled
+
+features_v4_waterbirds_dinov2_res600g0_train.npz
+
+  features_v4_waterbirds_dinov2_res6: 100%|██████████| 5/5 [00:00<00:00, 2297.24C/s]
+bundles:  86%|████████▌ | 6/7 [00:48<00:06,  6.48s/bundle]  margin 0.6375   gamma(g=0) 1.0000   gamma(g=1) 1.0000   tie -- the setting sits on the alpha = 1 transition   beta predicted 1.0000   plateau settled
+
+features_v4_waterbirds_dinov2_train.npz
+
+  features_v4_waterbirds_dinov2_trai: 100%|██████████| 5/5 [00:00<00:00, 535.29C/s]
+bundles: 100%|██████████| 7/7 [00:54<00:00,  7.76s/bundle]
+  margin 0.6312   gamma(g=0) 1.0000   gamma(g=1) 1.0000   tie -- the setting sits on the alpha = 1 transition   beta predicted 1.0000   plateau settled
+
+wrote results/v4_group_margins.json
+wrote results/v4_group_margins.md

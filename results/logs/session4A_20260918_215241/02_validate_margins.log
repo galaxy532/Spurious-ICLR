@@ -1,0 +1,18 @@
+cases:   0%|          | 0/4 [00:00<?, ?case/s]
+  asymmetric.npz                    : 100%|██████████| 5/5 [00:00<00:00, 15174.76C/s]
+
+  symmetric.npz                     : 100%|██████████| 5/5 [00:00<00:00, 13733.80C/s]
+
+  reversed.npz                      : 100%|██████████| 5/5 [00:00<00:00, 14533.28C/s]
+
+  nonseparable.npz                  : 100%|██████████| 5/5 [00:00<00:00, 11293.23C/s]
+cases: 100%|██████████| 4/4 [00:31<00:00,  7.78s/case]
+
+| case | m0 | m1 | margin g0 | margin g1 | ratio | plateau | larger |
+|---|---|---|---|---|---|---|---|
+| asymmetric | 1.0 | 1.6 | 1.0000 | 1.6000 | 1.6000 | 6.1e-10 | g=1 |
+| symmetric | 1.0 | 1.0 | 1.0000 | 1.0000 | 1.0000 | 1.1e-11 | - |
+| reversed | 1.5 | 1.0 | 1.5000 | 1.0000 | 0.6667 | 7.8e-10 | g=0 |
+| nonseparable | 1.0 | 1.2 | - | - | - | - | - |
+
+VALIDATION OK -- per-group margins and their ratio are recovered to within 2%, a tie is reported as a tie, and non-separable data is refused.
