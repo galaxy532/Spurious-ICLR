@@ -74,30 +74,48 @@ import os
 import numpy as np
 
 from backbones import REGISTRY, get_backbone
+from degrade import KINDS as DEGRADE_KINDS, make_degrader, tag as degrade_tag
 from progress import pbar
 from common import FeatureBundle
 from datasets import DATA_ROOT, cell_report, load_metadata
 
 
 class _ImageList:
-    """Minimal path -> tensor dataset. Avoids depending on any dataset library."""
+    """Minimal path -> tensor dataset. Avoids depending on any dataset library.
 
-    def __init__(self, paths, transform):
+    `pre` is an optional PIL -> PIL operation applied BEFORE `transform`, and
+    only to the images whose index is True in `pre_mask`. That is how the
+    group-conditional degradation of `degrade.py` enters: the mask is
+    `g == --degrade-group`, so one group is degraded and the other is not, with
+    everything else in the pipeline identical. `pre=None` is the ordinary path
+    and costs one attribute test per image.
+    """
+
+    def __init__(self, paths, transform, pre=None, pre_mask=None):
         self.paths, self.tf = paths, transform
+        self.pre = pre
+        self.pre_mask = pre_mask
+        if pre is not None and pre_mask is None:
+            raise ValueError("a degradation needs a mask saying which images it applies to")
+        if pre_mask is not None and len(pre_mask) != len(paths):
+            raise ValueError(f"mask has {len(pre_mask)} entries for {len(paths)} images")
 
     def __len__(self):
         return len(self.paths)
 
     def __getitem__(self, i):
         from PIL import Image
-        return self.tf(Image.open(self.paths[i]).convert("RGB")), i
+        im = Image.open(self.paths[i]).convert("RGB")
+        if self.pre is not None and self.pre_mask[i]:
+            im = self.pre(im)
+        return self.tf(im), i
 
 
-def _loader(paths, tf, bs, workers, shuffle=False):
+def _loader(paths, tf, bs, workers, shuffle=False, pre=None, pre_mask=None):
     import torch
     return torch.utils.data.DataLoader(
-        _ImageList(paths, tf), batch_size=bs, shuffle=shuffle,
-        num_workers=workers, pin_memory=True)
+        _ImageList(paths, tf, pre=pre, pre_mask=pre_mask), batch_size=bs,
+        shuffle=shuffle, num_workers=workers, pin_memory=True)
 
 
 def cell_ids(y, g):
@@ -107,7 +125,8 @@ def cell_ids(y, g):
 
 def train_backbone(model, dim, paths, y, g, tf, epochs, bs, lr, wd, workers, device,
                    mode="erm", dro_eta=0.01, max_batches=None, shuffle=None,
-                   optimizer="adamw", momentum=0.9, dro_absent="preserve"):
+                   optimizer="adamw", momentum=0.9, dro_absent="preserve",
+                   pre=None, pre_mask=None):
     """Fine-tune backbone + a linear head. Returns the backbone (head discarded).
 
     `mode` selects the loss; everything else is identical across modes.
@@ -150,7 +169,7 @@ def train_backbone(model, dim, paths, y, g, tf, epochs, bs, lr, wd, workers, dev
     if mode == "gdro":
         print(f"  gdro absent-cell rule: {dro_absent}")
     print(f"  shuffle = {shuffle}")
-    dl = _loader(paths, tf, bs, workers, shuffle=shuffle)
+    dl = _loader(paths, tf, bs, workers, shuffle=shuffle, pre=pre, pre_mask=pre_mask)
 
     model.train()
     for ep in range(epochs):
@@ -217,11 +236,11 @@ def train_backbone(model, dim, paths, y, g, tf, epochs, bs, lr, wd, workers, dev
     return model
 
 
-def embed(model, paths, tf, bs, workers, device) -> np.ndarray:
+def embed(model, paths, tf, bs, workers, device, pre=None, pre_mask=None) -> np.ndarray:
     """Forward pass only. Returns (N, d) float64."""
     import torch
 
-    dl = _loader(paths, tf, bs, workers)
+    dl = _loader(paths, tf, bs, workers, pre=pre, pre_mask=pre_mask)
     out = []
     with torch.no_grad():
         for xb, _ in pbar(dl, unit="batch", desc="  embedding"):
@@ -313,8 +332,35 @@ def main() -> None:
     ap.add_argument("--load-model", action="store_true",
                     help="load models/<dataset>_<backbone>.pt instead of training")
     ap.add_argument("--out-prefix", default="features")
+    # --- group-conditional core-feature degradation (see degrade.py) ---------
+    ap.add_argument("--degrade-kind", default="resolution", choices=list(DEGRADE_KINDS),
+                    help="which degradation operator (default resolution)")
+    ap.add_argument("--degrade-level", type=float, default=None,
+                    help="resolution: fraction of linear resolution KEPT, in (0,1], "
+                         "1.0 = identity. blur: Gaussian radius as a fraction of the "
+                         "short side, 0.0 = identity. Omitted means no degradation.")
+    ap.add_argument("--degrade-group", type=int, default=0, choices=[0, 1],
+                    help="which group gets degraded. DEFAULT 0: the bundle convention "
+                         "is g==0 = G_maj, g==1 = G_min, and Theorem 5.3 labels G_min "
+                         "as the LARGER-margin group, so degrading g==0 is what makes "
+                         "the script's min the theorem's min.")
+    ap.add_argument("--degrade-at", default="both", choices=["both", "embed"],
+                    help="'both' (default) degrades during backbone training as well, "
+                         "i.e. it is a property of the dataset. 'embed' degrades only "
+                         "at embedding time, which is a train/test shift -- use it only "
+                         "to isolate that shift deliberately.")
     args = ap.parse_args()
 
+    # Group-conditional degradation. `degrader is None` is the ordinary path and
+    # every branch below reduces to what the script did before 18 Sept 2026.
+    deg_level = args.degrade_level
+    if deg_level is None:
+        deg_level = 1.0 if args.degrade_kind == "resolution" else 0.0
+    degrader = make_degrader(args.degrade_kind, deg_level)
+    dtag = degrade_tag(args.degrade_kind, deg_level)
+    if degrader is not None:
+        print(f"DEGRADATION: {args.degrade_kind} level {deg_level} applied to group "
+              f"g == {args.degrade_group}, at {args.degrade_at}  (tag {dtag})")
     import torch
     device = "cuda" if torch.cuda.is_available() else "cpu"
     if device == "cpu":
@@ -347,6 +393,7 @@ def main() -> None:
     mpath = os.path.join(args.model_dir,
                          f"{args.dataset}_{args.backbone}"
                          + (f"_{suffix}" if suffix and suffix != "legacy" else "")
+                         + (f"_{dtag}g{args.degrade_group}" if dtag else "")
                          + ".pt")
     if epochs > 0:
         if args.load_model:
@@ -358,12 +405,17 @@ def main() -> None:
             print(cell_report(y_tr, g_tr, a_tr, f"{args.dataset}/train"))
             print(f"  training ({spec.train_mode}) ...")
             ttf = train_transform(augment) or tf
+            tr_pre = degrader if args.degrade_at == "both" else None
+            tr_mask = (np.asarray(g_tr, int) == args.degrade_group) if tr_pre else None
+            if tr_pre is not None:
+                print(f"  degrading {int(tr_mask.sum())} of {len(tr_mask)} training images")
             model = train_backbone(model, dim, p_tr, y_tr, g_tr, ttf, epochs,
                                    bs, lr, wd, args.workers, device,
                                    mode=spec.train_mode, dro_eta=args.dro_eta,
                                    max_batches=args.max_batches, shuffle=shuffle,
                                    optimizer=optimizer, momentum=momentum,
-                                   dro_absent=args.dro_absent)
+                                   dro_absent=args.dro_absent,
+                                   pre=tr_pre, pre_mask=tr_mask)
             if not args.no_save_model:
                 os.makedirs(args.model_dir, exist_ok=True)
                 torch.save(model.state_dict(), mpath)
@@ -375,8 +427,11 @@ def main() -> None:
     for split in order:
         paths, y01, g, attr = load_metadata(args.dataset, split, args.root)
         print(cell_report(y01, g, attr, f"{args.dataset}/{split}"))
-        print(f"  embedding {len(paths)} images ...")
-        phi = embed(model, paths, tf, bs, args.workers, device)
+        emb_mask = (np.asarray(g, int) == args.degrade_group) if degrader else None
+        print(f"  embedding {len(paths)} images ..."
+              + (f"  ({int(emb_mask.sum())} degraded)" if degrader else ""))
+        phi = embed(model, paths, tf, bs, args.workers, device,
+                    pre=degrader, pre_mask=emb_mask)
         if split == "train":
             mu, sd = train_stats(phi)
         # Standardise with TRAIN statistics -- see point 1 in the module docstring.
@@ -404,9 +459,19 @@ def main() -> None:
                 "shuffle": shuffle, "dro_absent": args.dro_absent,
                 "model_path": mpath if epochs > 0 else None,
                 "eps": float(np.mean(g == 1)),
+                "degrade_kind": args.degrade_kind,
+                "degrade_level": float(deg_level),
+                "degrade_group": int(args.degrade_group),
+                "degrade_at": args.degrade_at,
+                "degraded": bool(degrader is not None),
+                "degrade_tag": dtag,
             },
         )
-        out = f"{args.out_prefix}_{args.dataset}_{args.backbone}_{split}.npz"
+        # The tag is in the FILENAME so a sweep never overwrites its own levels
+        # and so a glob can pick one level out of a directory of them.
+        out = (f"{args.out_prefix}_{args.dataset}_{args.backbone}"
+               + (f"_{dtag}g{args.degrade_group}" if dtag else "")
+               + f"_{split}.npz")
         fb.save(out)
         with np.load(out, allow_pickle=True) as z:
             arrays = dict(z)
