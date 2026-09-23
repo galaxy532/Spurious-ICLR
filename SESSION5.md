@@ -184,6 +184,19 @@ fails. The calibration runs *before* the masks, deliberately: if it says no
 partition can work, the re-partition below is already explained before it is
 read.
 
+**The source bundle is located automatically.** Feature bundles are gitignored
+(`*.npz`), so where they sit is a property of the machine that extracted them,
+not of the repo — session 4 wrote them to the repo root (`--bundles
+features_v4_waterbirds_dinov2*_train.npz`, a bare glob). The runner checks the
+repo root, then `results/`, then falls back to a depth-3 search, prints which one
+it picked, and if it finds none it lists every `features_v*.npz` on the machine
+and stops before measuring anything. `BUNDLE=<path>` overrides.
+
+Note the asymmetry, so a `git pull` is not a surprise: the v4 bundles live at the
+repo root, `regroup.py` writes the v5 bundles into `results/`, and **neither is
+pulled** — `*.npz` is gitignored. What comes back is the `.md`, `.json` and
+`.csv`, which is everything needed to read the result.
+
 Options: `BUNDLE=<path>`, `RULES="median tercile"`, `NO_DOWNLOAD=1`, `PUSH=1`.
 
 ---
@@ -317,6 +330,12 @@ this way", which is a scope sentence rather than a failed experiment.
   r→s map (`A ≠ B`); the branch needs `g` to index a difference in core margins.
   Those are two separate demands on one partition, and no partition tried so far
   has met both — but there is no argument that they conflict. Open question.
+- **Do not hardcode a path to a gitignored file.** The first run aborted at the
+  bundle check because `BUNDLE` defaulted to `results/features_v4_..._train.npz`
+  while session 4 had written it to the repo root. `.gitignore` excludes `*.npz`,
+  so no amount of reading the repo would have revealed the location — it exists
+  only on Paperspace. The runner now searches and reports. Anything else that
+  reaches for a bundle, a dataset or a checkpoint should do the same.
 - **A self-test that only covers helpers is not a self-test.** `cub_masks.py` and
   `regroup.py` both do some imports inside `main()`, so `from datasets import
   load_raw` — a function that does not exist; it is `load_metadata` — passed

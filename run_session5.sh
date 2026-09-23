@@ -28,7 +28,11 @@
 #   results/logs/session5_<stamp>/*.log          the full log of every step
 #
 # Options
-#   BUNDLE=<path>   the source bundle (default: the undegraded session-4 dinov2 train)
+#   BUNDLE=<path>   the source bundle. Left unset, the undegraded session-4 dinov2
+#                   train bundle is located automatically -- feature bundles are
+#                   gitignored (`*.npz`), so where they sit is a property of the
+#                   machine that extracted them, not of the repo. Session 4 wrote
+#                   them to the repo root; `results/` is searched too.
 #   RULES="..."     partition rules to try (default: "median tercile")
 #   DATA_ROOT=...   passed through as SPURIOUS_DATA_ROOT if you set it
 #   NO_DOWNLOAD=1   fail instead of fetching the CUB segmentations
@@ -38,7 +42,8 @@
 set -u
 cd "$(dirname "$0")"
 PY=${PYTHON:-python}
-BUNDLE=${BUNDLE:-results/features_v4_waterbirds_dinov2_train.npz}
+BUNDLE=${BUNDLE:-}
+WANT=features_v4_waterbirds_dinov2_train.npz
 RULES=${RULES:-"median tercile"}
 NO_DOWNLOAD=${NO_DOWNLOAD:-}
 STAMP=$(date +%Y%m%d_%H%M%S)
@@ -48,6 +53,53 @@ SUMMARY=$LOG/SUMMARY.md
 START_ALL=$(date +%s)
 
 if [ -n "${DATA_ROOT:-}" ]; then export SPURIOUS_DATA_ROOT="$DATA_ROOT"; fi
+
+# ---------------------------------------------------------------------------
+# Locate the source bundle.
+#
+# `*.npz` is gitignored, so a bundle's location is a property of the machine that
+# extracted it rather than of the repo, and hardcoding one path is how this
+# aborted the first time. Session 4 wrote bundles to the repo root
+# (`--bundles features_v4_waterbirds_dinov2*_train.npz`, a bare glob); `results/`
+# is searched as well. The exact name has no degradation tag, so an exact-name
+# search cannot pick up `..._res100g0_train.npz` by accident.
+# ---------------------------------------------------------------------------
+if [ -z "$BUNDLE" ]; then
+  # Explicit candidates in preference order, so the choice is deterministic
+  # rather than whatever `find` happens to return first.
+  for CAND in "$WANT" "results/$WANT" "../$WANT"; do
+    if [ -f "$CAND" ]; then BUNDLE="$CAND"; break; fi
+  done
+fi
+if [ -z "$BUNDLE" ]; then
+  BUNDLE=$(find . -maxdepth 3 -name "$WANT" -type f 2>/dev/null | head -1)
+fi
+
+if [ -z "$BUNDLE" ] || [ ! -f "$BUNDLE" ]; then
+  {
+    echo "# Session 5 summary ($STAMP)"
+    echo ""
+    echo "## ABORTED before any measurement"
+    echo ""
+    echo "Could not find the source bundle \`$WANT\`."
+    echo ""
+    echo "Feature bundles are gitignored, so this is about where they live on THIS"
+    echo "machine, not about the repo. What is present:"
+    echo ""
+    echo '```'
+    find . -maxdepth 2 -name 'features_v*.npz' -type f 2>/dev/null | head -40
+    echo '```'
+    echo ""
+    echo "Re-run pointing at the right one, e.g."
+    echo ""
+    echo '    BUNDLE=path/to/bundle.npz nohup setsid bash run_session5.sh > session5_nohup.out 2>&1 &'
+  } >> "$SUMMARY"
+  echo "ABORTED: could not find $WANT. Bundles present:" >&2
+  find . -maxdepth 2 -name 'features_v*.npz' -type f 2>/dev/null | head -40 >&2
+  echo "Re-run with BUNDLE=<path> if it is somewhere else." >&2
+  exit 2
+fi
+echo "source bundle: $BUNDLE"
 
 echo "# Session 5 summary ($STAMP)" > "$SUMMARY"
 {
@@ -116,12 +168,6 @@ if [ $A -ne 0 ] || [ $B -ne 0 ] || [ $C -ne 0 ] || [ $D -ne 0 ]; then
   } >> "$SUMMARY"
   echo "ABORTED: self-check failed. Read $SUMMARY"
   exit 1
-fi
-
-if [ ! -f "$BUNDLE" ]; then
-  { echo "## ABORTED"; echo ""; echo "Source bundle \`$BUNDLE\` not found."; } >> "$SUMMARY"
-  echo "ABORTED: $BUNDLE not found. Set BUNDLE= to the right path." >&2
-  exit 2
 fi
 
 # =========================== stage 1: the calibration ================================
