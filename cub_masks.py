@@ -94,19 +94,35 @@ DEFAULT_THRESHOLD = 127
 # ----------------------------------------------------------------------------
 # Locating / fetching the archive
 # ----------------------------------------------------------------------------
+def _looks_like_segmentations(p: str) -> bool:
+    """True if `p` holds class subfolders with PNGs in them.
+
+    Deliberately not keyed on CUB's `001.Name` convention: the check is
+    structural (a subfolder containing at least one .png), so a re-release or a
+    hand-extraction under a different naming scheme still passes.
+    """
+    try:
+        entries = sorted(os.listdir(p))
+    except OSError:
+        return False
+    for e in entries[:50]:
+        sub = os.path.join(p, e)
+        if not os.path.isdir(sub):
+            continue
+        try:
+            if any(f.lower().endswith(".png") for f in os.listdir(sub)[:50]):
+                return True
+        except OSError:
+            continue
+    return False
+
+
 def find_segmentations(root: str) -> str | None:
     """Return the segmentations directory under `root`, or None."""
     for cand in SEG_CANDIDATES:
         p = os.path.join(root, cand)
-        if os.path.isdir(p):
-            # A real segmentations dir has CUB's class folders in it.
-            try:
-                entries = os.listdir(p)
-            except OSError:
-                continue
-            if any(e[:3].isdigit() and os.path.isdir(os.path.join(p, e))
-                   for e in entries):
-                return p
+        if os.path.isdir(p) and _looks_like_segmentations(p):
+            return p
     return None
 
 
@@ -213,6 +229,35 @@ def measure(paths, img_filenames, seg_root: str, threshold: int) -> list[dict]:
         )
         rows.append(row)
     return rows
+
+
+def read_waterbirds_metadata(root: str):
+    """(relative image paths, absolute paths, y, place, g, split), in file order.
+
+    Read straight from `metadata.csv` rather than through `datasets.load_metadata`
+    so there is exactly one pass over the file and the row order used here is the
+    row order `regroup.py` joins against. The column names and the group rule
+    come from `datasets.DECLARATIONS`, so the single source of truth for
+    `g = 1[place != y]` is still that file.
+    """
+    import pandas as pd
+    from datasets import DECLARATIONS
+
+    dec = DECLARATIONS["waterbirds"]
+    base = os.path.join(root, dec["dir"])
+    md = pd.read_csv(os.path.join(base, dec["metadata"]))
+    need = {dec["image_col"], dec["y_col"], dec["attr_col"], dec["split_col"]}
+    missing = need - set(md.columns)
+    if missing:
+        raise SystemExit(f"{dec['metadata']} is missing columns {sorted(missing)}")
+
+    rels = [str(p) for p in md[dec["image_col"]]]
+    y = md[dec["y_col"]].to_numpy().astype(int)
+    place = md[dec["attr_col"]].to_numpy().astype(int)
+    g = (place != y).astype(int)                     # dec["group_rule"]
+    split = md[dec["split_col"]].to_numpy().astype(int)
+    paths = [os.path.join(base, p) for p in rels]
+    return rels, paths, y, place, g, split
 
 
 def report(rows, y, place, g, split_code, threshold) -> dict:
@@ -335,9 +380,77 @@ def to_markdown(rep: dict, out_csv: str) -> str:
     return "\n".join(L)
 
 
+def run_on(root: str, seg_root: str, threshold: int, out_dir: str, tag: str):
+    """The whole measurement, from a data root to the written files.
+
+    Shared by `main()` and by the end-to-end self-test, so the path the self-test
+    exercises is the path the real run takes -- imports, column names, join and
+    all. An earlier draft had the self-test cover only the helpers, and a wrong
+    import inside `main()` sailed through every check before failing on the real
+    data.
+    """
+    import pandas as pd
+
+    rels, paths, y, place, g, split = read_waterbirds_metadata(root)
+    rows = measure(paths, rels, seg_root, threshold)
+    rep = report(rows, y, place, g, split, threshold)
+
+    os.makedirs(out_dir, exist_ok=True)
+    out_csv = os.path.join(out_dir, f"{tag}.csv")
+    df = pd.DataFrame(rows)
+    df["split"] = split
+    df["y"] = y
+    df["place"] = place
+    df["g_orig"] = g
+    df.to_csv(out_csv, index=False)
+
+    with open(os.path.join(out_dir, f"{tag}.json"), "w") as fh:
+        json.dump(rep, fh, indent=1)
+    with open(os.path.join(out_dir, f"{tag}.md"), "w") as fh:
+        fh.write(to_markdown(rep, out_csv))
+    return rep, rows, out_csv
+
+
 # ----------------------------------------------------------------------------
 # Self-test: no data, no download, no GPU
 # ----------------------------------------------------------------------------
+def mini_rows_on(k: int, n_per_class: int, h: int) -> int:
+    """Lit rows of the k-th mini mask: strictly increasing, never the full image."""
+    return max(1, int(round(h * (k + 1) / (n_per_class + 1))))
+
+
+def _mini_dataset(td: str, n_per_class: int = 6):
+    """A miniature Waterbirds + CUB-segmentations tree, for the end-to-end check."""
+    import pandas as pd
+    from PIL import Image
+    from datasets import DECLARATIONS
+
+    dec = DECLARATIONS["waterbirds"]
+    base = os.path.join(td, dec["dir"])
+    seg = os.path.join(td, "segmentations")
+    rng = np.random.default_rng(0)
+    recs = []
+    for ci, cls in enumerate(("001.Alpha", "002.Beta")):
+        os.makedirs(os.path.join(base, cls), exist_ok=True)
+        os.makedirs(os.path.join(seg, cls), exist_ok=True)
+        for k in range(n_per_class):
+            name = f"{cls.split('.')[1]}_{k:04d}"
+            w, h = 40, 50
+            Image.fromarray(np.zeros((h, w, 3), np.uint8), "RGB").save(
+                os.path.join(base, cls, name + ".jpg"))
+            m = np.zeros((h, w), np.uint8)
+            # A distinct, strictly increasing fraction per image, so a median or
+            # tercile split over them is well defined however many there are.
+            m[: mini_rows_on(k, n_per_class, h), :] = 255
+            Image.fromarray(m, "L").save(os.path.join(seg, cls, name + ".png"))
+            recs.append({dec["image_col"]: f"{cls}/{name}.jpg",
+                         dec["y_col"]: int(rng.integers(0, 2)),
+                         dec["attr_col"]: int(rng.integers(0, 2)),
+                         dec["split_col"]: ci})
+    pd.DataFrame(recs).to_csv(os.path.join(base, dec["metadata"]), index=False)
+    return seg
+
+
 def _self_test() -> int:
     import tempfile
     from PIL import Image
@@ -411,6 +524,40 @@ def _self_test() -> int:
     else:
         print("  ok   AUC = 1.0 / 0.0 / 0.5 on separated, anti-separated, tied")
 
+    # End to end, through the SAME function main() calls: metadata read, join,
+    # measurement, report, files written. This is what catches a bad import or a
+    # renamed column, which the helper checks above cannot see.
+    with tempfile.TemporaryDirectory() as td:
+        try:
+            seg = _mini_dataset(td)
+            if find_segmentations(td) is None:
+                print("  FAIL find_segmentations did not locate the mini tree"); ok = False
+            else:
+                print("  ok   find_segmentations locates a real-shaped tree")
+            out = os.path.join(td, "out")
+            rep, rows, csv_path = run_on(td, seg, DEFAULT_THRESHOLD, out, "mini")
+            if not rep["alignment_ok"]:
+                print(f"  FAIL end-to-end alignment not OK: {rep}"); ok = False
+            elif rep["n_usable"] != len(rows) or rep["n"] != 12:
+                print(f"  FAIL end-to-end row counts: {rep['n']}/{rep['n_usable']}")
+                ok = False
+            elif not all(os.path.exists(os.path.join(out, f"mini{e}"))
+                         for e in (".csv", ".json", ".md")):
+                print("  FAIL end-to-end did not write all three outputs"); ok = False
+            else:
+                import pandas as pd
+                d = pd.read_csv(csv_path)
+                needed = {"img_filename", "bird_frac", "split", "y", "place", "g_orig"}
+                if not needed.issubset(d.columns):
+                    print(f"  FAIL csv is missing {needed - set(d.columns)}"); ok = False
+                elif abs(float(d["bird_frac"].iloc[0]) - mini_rows_on(0, 6, 50) / 50) > 1e-9:
+                    print(f"  FAIL end-to-end fraction {d['bird_frac'].iloc[0]}"); ok = False
+                else:
+                    print("  ok   end-to-end run over a mini dataset, all columns present")
+        except Exception as exc:                        # noqa: BLE001
+            print(f"  FAIL end-to-end raised {type(exc).__name__}: {exc}")
+            ok = False
+
     print("SELF-TEST OK" if ok else "SELF-TEST FAILED")
     return 0 if ok else 1
 
@@ -432,7 +579,7 @@ def main() -> int:
     if args.self_test:
         return _self_test()
 
-    from datasets import DATA_ROOT, load_raw
+    from datasets import DATA_ROOT
     root = args.data_root or DATA_ROOT
 
     seg_root = args.seg_root or find_segmentations(root)
@@ -444,36 +591,10 @@ def main() -> int:
         seg_root = download_segmentations(root)
     print(f"segmentations: {seg_root}")
 
-    # pool_splits keeps metadata.csv order and gives every split at once, which is
-    # what regroup.py needs -- it joins to a bundle of any split.
-    paths, y, g, place = load_raw("waterbirds", split=None, pool_splits=True, root=root)
+    rep, rows, out_csv = run_on(root, seg_root, args.mask_threshold,
+                                args.out_dir, args.tag)
 
-    import pandas as pd
-    md = pd.read_csv(os.path.join(root, "waterbird_complete95_forest2water2",
-                                  "metadata.csv"))
-    rels = list(md["img_filename"])
-    split_code = md["split"].to_numpy().astype(int)
-    if len(rels) != len(paths):
-        raise SystemExit(f"metadata has {len(rels)} rows but load_raw gave {len(paths)}")
-
-    rows = measure(paths, rels, seg_root, args.mask_threshold)
-    rep = report(rows, y, place, g, split_code, args.mask_threshold)
-
-    os.makedirs(args.out_dir, exist_ok=True)
-    out_csv = os.path.join(args.out_dir, f"{args.tag}.csv")
-    df = pd.DataFrame(rows)
-    df["split"] = split_code
-    df["y"] = y
-    df["place"] = place
-    df["g_orig"] = g
-    df.to_csv(out_csv, index=False)
-
-    with open(os.path.join(args.out_dir, f"{args.tag}.json"), "w") as fh:
-        json.dump(rep, fh, indent=1)
-    mdtxt = to_markdown(rep, out_csv)
-    with open(os.path.join(args.out_dir, f"{args.tag}.md"), "w") as fh:
-        fh.write(mdtxt)
-    print(mdtxt)
+    print(to_markdown(rep, out_csv))
     print(f"wrote {out_csv}")
 
     if not rep["alignment_ok"]:

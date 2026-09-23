@@ -137,7 +137,7 @@ refuses to run on a split with any unusable row.
 | `cub_masks.py` | fetch + md5-verify the CUB segmentations, join by filename, bird-pixel fraction per image, alignment check, three leakage AUCs | `python cub_masks.py --self-test` — exact fraction on a known mask (0.20), dimension mismatch caught, missing mask reported not crashed, alignment refused when a mismatch is present, AUC = 1.0/0.0/0.5 on separated/anti-separated/tied |
 | `regroup.py` | replaces `g` in a bundle and writes a NEW bundle; median and tercile rules; row-order guard; matched control for any row-dropping rule | `python regroup.py --self-test` — both rules, `--invert`, shuffled bundle caught, round-trip keeps the right rows and re-standardises |
 | `margin_power.py` | the four calibration sweeps | `python margin_power.py --self-test` — planted translation exact to 1e-9 and the identity at delta 0, pinned control recovers 1.6000, unplanted split is a tie |
-| `validate_session5.py` | the JOIN between them | a regrouped bundle loads in the **unmodified** `group_margins.py` with matching group counts, `phi`/`y` bit-identical, shuffled bundle refused, a planted ratio survives the path |
+| `validate_session5.py` | the JOIN between them | a regrouped bundle loads in the **unmodified** `group_margins.py` with matching group counts, `phi`/`y` bit-identical, shuffled bundle refused, a planted ratio survives the path, and **the real command line** (`cub_masks.py` → `regroup.py` → `group_margins.py`, as subprocesses with the flags `run_session5.sh` passes) runs end to end on a miniature dataset |
 | `run_session5.sh` | the runner | `bash -n` |
 
 **Nothing existing was edited.** `group_margins.py`, `degrade.py`,
@@ -317,6 +317,14 @@ this way", which is a scope sentence rather than a failed experiment.
   r→s map (`A ≠ B`); the branch needs `g` to index a difference in core margins.
   Those are two separate demands on one partition, and no partition tried so far
   has met both — but there is no argument that they conflict. Open question.
+- **A self-test that only covers helpers is not a self-test.** `cub_masks.py` and
+  `regroup.py` both do some imports inside `main()`, so `from datasets import
+  load_raw` — a function that does not exist; it is `load_metadata` — passed
+  every in-process check and would have died at step 20, after stage 0 reported
+  four clean passes. `validate_session5.py` check 5 now runs the real command
+  line as subprocesses over a miniature Waterbirds + segmentations tree, which is
+  the only thing that exercises a deferred import. Any new step added to
+  `run_session5.sh` should be added there too.
 - **A rigid translation is the wrong way to plant an asymmetry.** It plants it
   along the one direction the optimiser can undo, and the `translate` sweep exists
   only to show that. The first draft of `margin_power.py` used it as the main

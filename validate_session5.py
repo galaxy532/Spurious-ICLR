@@ -24,23 +24,34 @@ would actually live:
    reported ratio is the planted one. This ties the session-5 path back to
    `validate_group_margins.py`'s own guarantee.
 
+5. THE REAL COMMAND LINE runs, on a miniature dataset: `cub_masks.py` then
+   `regroup.py` then `group_margins.py`, as subprocesses, with the flags
+   `run_session5.sh` actually passes. Both `cub_masks.py` and `regroup.py` do
+   some of their imports inside `main()`, so an import that does not exist is
+   invisible to every in-process check -- it surfaces only when the step runs for
+   real, forty minutes into a job. One did: the Waterbirds loader is
+   `load_metadata`, not `load_raw`. This check is what closes that hole.
+
 No data, no download, no GPU. A few seconds.
 """
 
 from __future__ import annotations
 
 import os
+import subprocess
+import sys
 import tempfile
 
 import numpy as np
 
 from common import FeatureBundle
-from group_margins import C_LADDER, analyse_bundle
+from group_margins import analyse_bundle
 from margin_power import pinned_bundle
 from progress import pbar
 from regroup import check_alignment, group_from_fraction, write_bundle
 
 LADDER = (1e4, 1e5, 1e6)
+HERE = os.path.dirname(os.path.abspath(__file__))
 
 
 def _mk_source(n=400, d=24, seed=0):
@@ -59,6 +70,78 @@ def _mk_source(n=400, d=24, seed=0):
     return fb, y01, place
 
 
+def _run(args, cwd, env):
+    """Run one of this repo's scripts from `cwd`, so relative results/ paths work."""
+    script, rest = os.path.join(HERE, args[0]), list(args[1:])
+    p = subprocess.run([sys.executable, script, *rest], cwd=cwd, env=env,
+                       capture_output=True, text=True, timeout=600)
+    return p.returncode, (p.stdout + p.stderr)[-1500:]
+
+
+def _cli_chain() -> list[str]:
+    """cub_masks -> regroup -> group_margins, as subprocesses with real flags."""
+    from cub_masks import _mini_dataset
+
+    bad = []
+    with tempfile.TemporaryDirectory() as td:
+        n_per_class = 40
+        seg = _mini_dataset(td, n_per_class=n_per_class)
+        env = dict(os.environ, SPURIOUS_DATA_ROOT=td, NO_PROGRESS="1",
+                   PYTHONPATH=HERE + os.pathsep + os.environ.get("PYTHONPATH", ""))
+        work = os.path.join(td, "work")
+        os.makedirs(os.path.join(work, "results"), exist_ok=True)
+
+        rc, out = _run(["cub_masks.py", "--no-download", "--seg-root", seg,
+                        "--tag", "v5_bird_fraction"], work, env)
+        if rc != 0:
+            return [f"cub_masks.py CLI exited {rc}: {out}"]
+
+        # A bundle matching split 0 (the mini 'train'), in metadata order.
+        import pandas as pd
+        d = pd.read_csv(os.path.join(work, "results", "v5_bird_fraction.csv"))
+        d = d[d["split"] == 0].reset_index(drop=True)
+        n, dim = len(d), 16
+        rng = np.random.default_rng(7)
+        y = (2 * d["y"].to_numpy().astype(int) - 1)
+        w = rng.normal(size=dim)
+        phi = rng.normal(size=(n, dim))
+        phi += 6.0 * y[:, None] * (w / np.linalg.norm(w))[None, :]
+        FeatureBundle(phi=phi, y=y, g=d["g_orig"].to_numpy().astype(int),
+                      idx_r=np.array([], int), idx_s=np.array([], int),
+                      place=d["place"].to_numpy().astype(int),
+                      meta={"standardized": True, "split": "train",
+                            "backbone": "mini"}
+                      ).save(os.path.join(work, "results",
+                                          "features_v4_mini_dinov2_train.npz"))
+
+        for rule in ("median", "tercile"):
+            rc, out = _run(["regroup.py",
+                            "--bundle", "results/features_v4_mini_dinov2_train.npz",
+                            "--fractions", "results/v5_bird_fraction.csv",
+                            "--rule", rule,
+                            # The mini labels are random, so the leakage gate is
+                            # meaningless here; it is exercised by its own unit check.
+                            "--min-auc-dev", "0.5"], work, env)
+            if rc != 0:
+                bad.append(f"regroup.py --rule {rule} CLI exited {rc}: {out}")
+                continue
+            rc, out = _run(["group_margins.py", "--no-lp",
+                            "--tag", f"v5_group_margins_{rule}",
+                            "--bundles", f"results/features_v5_*_bf{rule}*.npz"],
+                           work, env)
+            if rc != 0:
+                bad.append(f"group_margins.py after {rule} exited {rc}: {out}")
+                continue
+            md = os.path.join(work, "results", f"v5_group_margins_{rule}.md")
+            if not os.path.exists(md):
+                bad.append(f"group_margins.py wrote no table for {rule}")
+            elif rule == "tercile":
+                txt = open(md).read()
+                if "_control" not in txt:
+                    bad.append("the tercile run produced no matched control row")
+    return bad
+
+
 def main() -> int:
     print("session 5 integration check")
     fails = []
@@ -67,6 +150,7 @@ def main() -> int:
         "phi and y pass through untouched when no row is dropped",
         "row-order guard fires on a shuffled bundle",
         "a planted asymmetry survives the session-5 path",
+        "the real command line runs end to end on a mini dataset",
     ]
 
     with tempfile.TemporaryDirectory() as td:
@@ -130,6 +214,10 @@ def main() -> int:
                          f"{rp['gamma_min_theorem']:.4f}")
         elif rp["larger_margin_group"] != 1:
             fails.append(f"planted larger group is g={rp['larger_margin_group']}, not 1")
+
+        # ---- 5 ----------------------------------------------------------
+        next(it)
+        fails.extend(_cli_chain())
 
         for _ in it:
             pass
