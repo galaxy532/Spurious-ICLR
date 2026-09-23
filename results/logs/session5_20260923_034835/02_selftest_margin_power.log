@@ -1,0 +1,8 @@
+margin_power self-test
+  ok   translation adds exactly delta to the chosen margins
+  ok   every other point is untouched
+  ok   delta = 0 is exactly the identity
+  ok   pinned control recovers its planted ratio (1.6000)
+  ok   an unplanted random split is a tie
+  ok   oracle target 2.266 before re-solving; after re-solving 1.784073 (non-tie) -- informational
+SELF-TEST OK

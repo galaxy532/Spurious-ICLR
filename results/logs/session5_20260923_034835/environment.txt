@@ -1,0 +1,13 @@
+== date
+Wed Sep 23 03:48:35 UTC 2026
+== git
+d6d1229126e6f7d890d8de4125c76b5c3cbb075b
+?? results/logs/session5_20260923_034835/
+?? session5_nohup.out
+== python
+Python 3.12.13
+numpy 2.5.3 sklearn 1.9.1 pillow 12.3.0 pandas 3.0.6
+== data root
+/notebooks/Spurious-ICLR/../data
+== bundle
+ls: cannot access 'results/features_v4_waterbirds_dinov2_train.npz': No such file or directory

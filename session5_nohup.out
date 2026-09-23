@@ -1,0 +1,52 @@
+nohup: ignoring input
+[03:48:37] START 00_selftest_cub_masks: python cub_masks.py --self-test
+cub_masks self-test
+masks:   0%|          | 0/3 [00:00<?, ?img/s]masks: 100%|██████████| 3/3 [00:00<00:00, 1452.66img/s]
+  ok   bird fraction exact on a known mask (0.20)
+  ok   matching dimensions accepted
+  ok   dimension mismatch caught
+  ok   missing mask reported, no crash
+  ok   alignment refused when a mismatch is present
+  ok   AUC = 1.0 / 0.0 / 0.5 on separated, anti-separated, tied
+  ok   find_segmentations locates a real-shaped tree
+masks:   0%|          | 0/12 [00:00<?, ?img/s]masks: 100%|██████████| 12/12 [00:00<00:00, 5221.67img/s]
+  ok   end-to-end run over a mini dataset, all columns present
+SELF-TEST OK
+[03:48:38] END   00_selftest_cub_masks: exit 0 after 0 min
+[03:48:38] START 01_selftest_regroup: python regroup.py --self-test
+regroup self-test
+  ok   median keeps every row and puts the large birds in g=1
+  ok   tercile drops the middle third, large birds in g=1
+  ok   --invert flips the assignment
+  ok   aligned bundle accepted
+  ok   shuffled bundle caught
+  ok   round-trip keeps the right rows, g, and re-standardises
+SELF-TEST OK
+[03:48:39] END   01_selftest_regroup: exit 0 after 0 min
+[03:48:39] START 02_selftest_margin_power: python margin_power.py --self-test
+margin_power self-test
+  ok   translation adds exactly delta to the chosen margins
+  ok   every other point is untouched
+  ok   delta = 0 is exactly the identity
+  ok   pinned control recovers its planted ratio (1.6000)
+  ok   an unplanted random split is a tie
+  ok   oracle target 2.266 before re-solving; after re-solving 1.784073 (non-tie) -- informational
+SELF-TEST OK
+[03:48:40] END   02_selftest_margin_power: exit 0 after 0 min
+[03:48:40] START 03_integration: python validate_session5.py
+session 5 integration check
+checks:   0%|          | 0/5 [00:00<?, ?check/s]
+  regrouped.npz                     :   0%|          | 0/3 [00:00<?, ?C/s][A  regrouped.npz                     : 100%|██████████| 3/3 [00:00<00:00, 13691.96C/s]
+
+  planted.npz                       :   0%|          | 0/3 [00:00<?, ?C/s][A  planted.npz                       : 100%|██████████| 3/3 [00:00<00:00, 17549.39C/s]
+checks: 100%|██████████| 5/5 [00:05<00:00,  1.00s/check]checks: 100%|██████████| 5/5 [00:05<00:00,  1.00s/check]
+
+  regrouped bundle loads in group_margins unchanged
+  phi and y pass through untouched when no row is dropped
+  row-order guard fires on a shuffled bundle
+  a planted asymmetry survives the session-5 path
+  the real command line runs end to end on a mini dataset
+
+INTEGRATION OK -- a re-partitioned bundle is read by the unmodified group_margins.py, the features are untouched, a shuffled bundle is refused, and a planted ratio survives the path.
+[03:48:47] END   03_integration: exit 0 after 0 min
+ABORTED: results/features_v4_waterbirds_dinov2_train.npz not found. Set BUNDLE= to the right path.
