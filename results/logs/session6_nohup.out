@@ -87,3 +87,5 @@ Fetch it by hand -- one public file:
     tar xzf CUB_200_2011.tgz CUB_200_2011/images.txt CUB_200_2011/bounding_boxes.txt CUB_200_2011/attributes CUB_200_2011/parts attributes.txt
 
 [03:20:13] END   20_cub_meta: exit 1 after 0 min
+PUSH FAILED -- see results/logs/session6_20260924_031959/90_push.log, then push by hand:
+  git add -A results && git commit -m 'session 6 results' && git push
