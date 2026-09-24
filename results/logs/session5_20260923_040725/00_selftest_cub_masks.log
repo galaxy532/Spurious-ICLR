@@ -1,0 +1,12 @@
+cub_masks self-test
+masks: 100%|██████████| 3/3 [00:00<00:00, 3793.46img/s]
+  ok   bird fraction exact on a known mask (0.20)
+  ok   matching dimensions accepted
+  ok   dimension mismatch caught
+  ok   missing mask reported, no crash
+  ok   alignment refused when a mismatch is present
+  ok   AUC = 1.0 / 0.0 / 0.5 on separated, anti-separated, tied
+  ok   find_segmentations locates a real-shaped tree
+masks: 100%|██████████| 12/12 [00:00<00:00, 5311.49img/s]
+  ok   end-to-end run over a mini dataset, all columns present
+SELF-TEST OK

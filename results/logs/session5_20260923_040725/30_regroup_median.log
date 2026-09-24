@@ -1,0 +1,5 @@
+row order check: ok (4795 rows, y and place both match)
+leakage of bird fraction into y: AUC 0.5392 (deviation 0.0392)
+bundles: 100%|██████████| 1/1 [00:01<00:00,  1.32s/bundle]
+  treatment        features_v5_waterbirds_dinov2_train_bfmedian.npz  n=4795  g0=2398 g1=2397  eps=0.4999
+wrote results/features_v5_waterbirds_dinov2_train_bfmedian_regroup.json

@@ -1,0 +1,14 @@
+bundles:   0%|          | 0/2 [00:00<?, ?bundle/s]
+results/features_v5_waterbirds_dinov2_train_bftercile.npz
+
+  features_v5_waterbirds_dinov2_trai: 100%|██████████| 5/5 [00:00<00:00, 2605.48C/s]
+bundles:  50%|█████     | 1/2 [00:03<00:03,  3.76s/bundle]  margin 0.7938   gamma(g=0) 1.0000   gamma(g=1) 1.0000   tie -- the setting sits on the alpha = 1 transition   beta predicted 1.0000   plateau settled
+
+results/features_v5_waterbirds_dinov2_train_bftercile_control.npz
+
+  features_v5_waterbirds_dinov2_trai: 100%|██████████| 5/5 [00:00<00:00, 397.22C/s]
+bundles: 100%|██████████| 2/2 [00:07<00:00,  3.85s/bundle]
+  margin 0.7938   gamma(g=0) 1.0000   gamma(g=1) 1.0000   tie -- the setting sits on the alpha = 1 transition   beta predicted 1.0000   plateau settled
+
+wrote results/v5_group_margins_tercile.json
+wrote results/v5_group_margins_tercile.md

@@ -1,0 +1,9 @@
+bundles:   0%|          | 0/1 [00:00<?, ?bundle/s]
+results/features_v5_waterbirds_dinov2_train_bfmedian.npz
+
+  features_v5_waterbirds_dinov2_trai: 100%|██████████| 5/5 [00:00<00:00, 660.23C/s]
+bundles: 100%|██████████| 1/1 [00:06<00:00,  6.71s/bundle]
+  margin 0.6312   gamma(g=0) 1.0000   gamma(g=1) 1.0000   tie -- the setting sits on the alpha = 1 transition   beta predicted 1.0000   plateau settled
+
+wrote results/v5_group_margins_median.json
+wrote results/v5_group_margins_median.md

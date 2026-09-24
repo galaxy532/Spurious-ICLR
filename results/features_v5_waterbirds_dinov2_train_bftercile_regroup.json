@@ -1,0 +1,44 @@
+{
+ "rule": "tercile",
+ "cuts": {
+  "q33": 0.0911357340720221,
+  "q67": 0.1488247422680412
+ },
+ "split": "train",
+ "invert": false,
+ "source": "features_v4_waterbirds_dinov2_train.npz",
+ "alignment": {
+  "n_bundle": 4795,
+  "n_meta": 4795,
+  "y_matches": true,
+  "place_matches": true,
+  "ok": true
+ },
+ "leakage_frac_vs_y": {
+  "auc": 0.5391755525655273,
+  "mean_1": 0.14487608448766226,
+  "mean_0": 0.12936661866830548,
+  "n_1": 1113,
+  "n_0": 3682
+ },
+ "bundles": [
+  {
+   "path": "results/features_v5_waterbirds_dinov2_train_bftercile.npz",
+   "n": 3198,
+   "n_dropped": 1597,
+   "n_g0": 1599,
+   "n_g1": 1599,
+   "eps": 0.5,
+   "role": "treatment"
+  },
+  {
+   "path": "results/features_v5_waterbirds_dinov2_train_bftercile_control.npz",
+   "n": 3198,
+   "n_dropped": 1597,
+   "n_g0": 3039,
+   "n_g1": 159,
+   "eps": 0.04971857410881801,
+   "role": "matched_control"
+  }
+ ]
+}

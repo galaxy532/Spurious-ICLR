@@ -1,0 +1,34 @@
+{
+ "rule": "median",
+ "cuts": {
+  "median": 0.1167267267267267
+ },
+ "split": "train",
+ "invert": false,
+ "source": "features_v4_waterbirds_dinov2_train.npz",
+ "alignment": {
+  "n_bundle": 4795,
+  "n_meta": 4795,
+  "y_matches": true,
+  "place_matches": true,
+  "ok": true
+ },
+ "leakage_frac_vs_y": {
+  "auc": 0.5391755525655273,
+  "mean_1": 0.14487608448766226,
+  "mean_0": 0.12936661866830548,
+  "n_1": 1113,
+  "n_0": 3682
+ },
+ "bundles": [
+  {
+   "path": "results/features_v5_waterbirds_dinov2_train_bfmedian.npz",
+   "n": 4795,
+   "n_dropped": 0,
+   "n_g0": 2398,
+   "n_g1": 2397,
+   "eps": 0.49989572471324295,
+   "role": "treatment"
+  }
+ ]
+}

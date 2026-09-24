@@ -1,0 +1,42 @@
+{
+ "n": 11788,
+ "n_mask_found": 11788,
+ "n_size_match": 11788,
+ "n_usable": 11788,
+ "mask_threshold": 127,
+ "size_match_rate": 1.0,
+ "alignment_ok": true,
+ "alignment_verdict": "OK -- every mask has the same pixel dimensions as its composite, so the CUB segmentation describes the Waterbirds image",
+ "bird_frac": {
+  "min": 0.010053333333333333,
+  "max": 0.7346006006006006,
+  "mean": 0.1308322242018853,
+  "median": 0.11584528735632184,
+  "q10": 0.05117142220755651,
+  "q33": 0.09003603603603604,
+  "q50": 0.11584528735632184,
+  "q67": 0.14718210862619807,
+  "q90": 0.22465091711229954
+ },
+ "leakage": {
+  "auc": 0.5425033667868662,
+  "mean_1": 0.14263646107636044,
+  "mean_0": 0.1273873274570385,
+  "n_1": 2663,
+  "n_0": 9125
+ },
+ "leakage_vs_place": {
+  "auc": 0.5098615033322618,
+  "mean_1": 0.1328280119707003,
+  "mean_0": 0.1294914148612419,
+  "n_1": 4737,
+  "n_0": 7051
+ },
+ "leakage_vs_old_group": {
+  "auc": 0.4961546288790953,
+  "mean_1": 0.12979860526949855,
+  "mean_0": 0.13131180695541203,
+  "n_1": 3736,
+  "n_0": 8052
+ }
+}

@@ -1,0 +1,8 @@
+regroup self-test
+  ok   median keeps every row and puts the large birds in g=1
+  ok   tercile drops the middle third, large birds in g=1
+  ok   --invert flips the assignment
+  ok   aligned bundle accepted
+  ok   shuffled bundle caught
+  ok   round-trip keeps the right rows, g, and re-standardises
+SELF-TEST OK

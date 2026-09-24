@@ -1,0 +1,13 @@
+== date
+Wed Sep 23 04:07:25 UTC 2026
+== git
+6ccf483c9c89701199109d0fbe6060092cc92e6b
+ M session5_nohup.out
+?? results/logs/session5_20260923_040725/
+== python
+Python 3.12.13
+numpy 2.5.3 sklearn 1.9.1 pillow 12.3.0 pandas 3.0.6
+== data root
+/notebooks/Spurious-ICLR/../data
+== bundle
+-rw-r--r-- 1 root root 28315610 Sep 18 21:58 features_v4_waterbirds_dinov2_train.npz

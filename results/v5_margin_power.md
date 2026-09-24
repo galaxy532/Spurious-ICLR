@@ -1,0 +1,59 @@
+# Can the per-group margin ratio be anything but 1 on these features?
+
+An instrument calibration, not a result. See the module docstring for why
+`validate_group_margins.py`'s 1.6000 does not answer this.
+
+- bundle: `features_v4_waterbirds_dinov2_train.npz`   n = 4795, d = 768
+- baseline margin: **0.6312**
+- tie tolerance `0.001`, C ladder [100.0, 1000.0, 10000.0, 100000.0, 1000000.0]
+
+## Answer
+
+**YES.** The oracle partition reaches a ratio of 9.9815 at frac=0.05. A non-tie is attainable on these features, so a real partition is worth trying; compare its ratio against this ceiling.
+
+## Every configuration
+
+`target` is the ratio under the BASELINE separator, before re-solving.
+`ratio` is what `group_margins.py` reports after re-solving. The gap
+between them is how much the optimiser undoes.
+
+| sweep | knob | n_g1 | target | ratio | verdict | q01 ratio | q05 ratio | SV g0 | SV g1 |
+|---|---|---|---|---|---|---|---|---|---|
+| oracle | frac=0.05 | 240 | 9.9815 | 9.981470 | g=1 | 9.9894 | 10.1040 | 421 | 10 |
+| oracle | frac=0.1 | 480 | 7.2260 | 7.225966 | g=1 | 7.2538 | 7.4007 | 421 | 9 |
+| oracle | frac=0.25 | 1199 | 3.4425 | 3.442479 | g=1 | 3.4672 | 3.5860 | 421 | 17 |
+| oracle | frac=0.5 | 2398 | 2.4033 | 2.403320 | g=1 | 2.4162 | 2.4830 | 421 | 39 |
+| oracle | frac=0.75 | 3596 | 1.6702 | 1.670204 | g=1 | 1.6904 | 1.7824 | 421 | 33 |
+| oracle | frac=0.9 | 4316 | 1.0775 | 1.077547 | g=1 | 1.1393 | 1.3103 | 421 | 8 |
+| pinned | m1=1.05 | 1196 | 1.0500 | 1.050000 | g=1 | 1.0500 | 1.0500 | 3596 | 1196 |
+| pinned | m1=1.6 | 1196 | 1.6000 | 1.600000 | g=1 | 1.6000 | 1.6000 | 3596 | 1196 |
+| translate | delta=0.05 seed=0 | 2397 | 1.0500 | 1.000000 | tie | 1.0000 | 1.0000 | 236 | 183 |
+| translate | delta=0.2 seed=0 | 2397 | 1.2000 | 1.000000 | tie | 1.0000 | 1.0000 | 251 | 148 |
+| translate | delta=0.8 seed=0 | 2397 | 1.8000 | 1.000000 | tie | 1.0000 | 1.2338 | 312 | 74 |
+| translate | delta=2 seed=0 | 2397 | 3.0000 | 1.000000 | tie | 1.1753 | 1.9215 | 331 | 16 |
+| heavy_tail | q=1 seed=0 | 1199 | 3.4425 | 3.442479 | g=1 | 3.4672 | 3.5860 | 421 | 17 |
+| heavy_tail | q=0.999 seed=0 | 1199 | 1.8121 | 1.812081 | g=1 | 3.4672 | 3.5860 | 421 | 1 |
+| heavy_tail | q=0.99 seed=0 | 1199 | 1.0000 | 1.000000 | tie | 3.4588 | 3.5860 | 419 | 2 |
+| heavy_tail | q=0.95 seed=0 | 1199 | 1.0000 | 1.000000 | tie | 1.2655 | 3.5591 | 413 | 8 |
+| translate | delta=0.05 seed=1 | 2397 | 1.0500 | 1.000000 | tie | 1.0000 | 1.0000 | 227 | 195 |
+| translate | delta=0.2 seed=1 | 2397 | 1.2000 | 1.000000 | tie | 1.0000 | 1.0000 | 246 | 156 |
+| translate | delta=0.8 seed=1 | 2397 | 1.8000 | 1.000000 | tie | 1.0000 | 1.2443 | 302 | 69 |
+| translate | delta=2 seed=1 | 2397 | 3.0000 | 1.000000 | tie | 1.1302 | 1.9266 | 339 | 21 |
+| heavy_tail | q=1 seed=1 | 1199 | 3.4425 | 3.442479 | g=1 | 3.4672 | 3.5860 | 421 | 17 |
+| heavy_tail | q=0.999 seed=1 | 1199 | 1.2679 | 1.267933 | g=1 | 3.4672 | 3.5860 | 421 | 1 |
+| heavy_tail | q=0.99 seed=1 | 1199 | 1.0000 | 1.000000 | tie | 3.4628 | 3.5860 | 418 | 3 |
+| heavy_tail | q=0.95 seed=1 | 1199 | 1.0000 | 1.000000 | tie | 1.2379 | 3.5642 | 412 | 9 |
+
+## How to read this
+
+- `pinned` must recover its `m1`. If it does not, the instrument is broken
+  at this n and d and nothing else on the page can be read.
+- `oracle` is the ceiling. Every row a tie means no group variable can
+  produce a non-tie on this representation, bird size included.
+- `translate` shows how much a naive planted gap is undone by re-solving.
+  A large `target` next to a `ratio` of 1 is the optimiser rotating away
+  from the asymmetry -- the same mechanism that makes real partitions tie.
+- `heavy_tail` shows what one hard member does to a group's ess inf.
+- If the `q01`/`q05` ratios move while `ratio` stays at 1, the asymmetry is
+  real and the ess inf is hiding it. That is a question for the theory, not
+  for this code.
