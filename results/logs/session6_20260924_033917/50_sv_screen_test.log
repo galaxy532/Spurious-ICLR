@@ -1,0 +1,51 @@
+row order check: ok (5794 rows, y and place both match)
+separator: margin 0.3505 at C = 1e+06, plateau 6.0e-10
+candidates: 100%|██████████| 650/650 [00:03<00:00, 179.55cand/s]
+|S| = 515; 362 of 650 candidates eligible; floor m >= 95; hits: 0
+confirm bundles: 0bundle [00:00, ?bundle/s]
+# Session 6 -- does any image property avoid the margin set?
+
+- bundle: `features_v3_waterbirds_dinov2_test.npz`   n = 5794
+- separator: LinearSVC hinge, no intercept, C = 1e+06, margin u* = 0.3505, plateau 6.0e-10
+- **margin set S** (u within 0.001 relative of u*): **515** points (91 waterbirds, 424 landbirds)
+- family: 650 candidates (A_attribute 624, B_proxy_tail 24, C_binary 2); **362 eligible** after the size / label-balance / label-proxy filters (minimum group size 58)
+- **detectability floor: m >= 95** (unstratified bound). A margin-free group of at least this size, with the data's label mix, survives Holm. Below it, a margin-free group can arise by chance.
+
+## Answer
+
+**NO HIT.** No eligible candidate contains zero margin points beyond what chance allows. See the graded table below for how close the best came.
+
+## The closest candidates, by depletion of margin points
+
+`margin pts in G` against `expected` is the graded statistic: how many of the S points fall in G, against the label-matched expectation. `p (depletion)` is the exact probability of that few or fewer under the null. `ratio` exceeds 1 only when the count is 0.
+
+| candidate G | m | waterbird/landbird | ratio | larger | margin pts in G | expected | p (min) | Holm p (min) | p (depletion) | Holm p (depl.) | AUC y | phi y | AUC place | AUC old g |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| has_bill_color::brown = 0 | 5306 | 1210/4096 | 1.0000 | tie | 444 | 470.8 | 1.00e+00 | 1.00e+00 | 2.19e-05 | 7.93e-03 | 0.517 | +0.051 | 0.508 | 0.508 |
+| has_throat_color::brown = 0 | 5318 | 1183/4135 | 1.0000 | tie | 449 | 472.6 | 1.00e+00 | 1.00e+00 | 1.25e-04 | 4.53e-02 | 0.502 | +0.007 | 0.506 | 0.505 |
+| has_upper_tail_color::brown = 0 | 4966 | 1146/3820 | 1.0000 | tie | 413 | 440.4 | 1.00e+00 | 1.00e+00 | 3.32e-04 | 1.19e-01 | 0.523 | +0.054 | 0.504 | 0.504 |
+| has_under_tail_color::brown = 0 | 4903 | 1160/3743 | 1.0000 | tie | 410 | 434.1 | 1.00e+00 | 1.00e+00 | 1.73e-03 | 6.20e-01 | 0.537 | +0.085 | 0.508 | 0.505 |
+| has_forehead_color::black = 0 | 3930 | 778/3152 | 1.0000 | tie | 322 | 351.5 | 1.00e+00 | 1.00e+00 | 2.18e-03 | 7.82e-01 | 0.454 | -0.083 | 0.491 | 0.488 |
+| bbox_area_frac top 0.25 (>= 0.4512) | 1449 | 382/1067 | 1.0000 | tie | 101 | 127.4 | 5.83e-01 | 1.00e+00 | 2.33e-03 | 8.32e-01 | 0.530 | +0.058 | 0.499 | 0.502 |
+| has_shape::hawk-like = 0 | 5605 | 1243/4362 | 1.0000 | tie | 486 | 498.2 | 1.00e+00 | 1.00e+00 | 2.36e-03 | 8.39e-01 | 0.500 | +0.002 | 0.499 | 0.502 |
+| has_wing_color::brown = 0 | 4237 | 1026/3211 | 1.0000 | tie | 348 | 374.6 | 1.00e+00 | 1.00e+00 | 3.70e-03 | 1.00e+00 | 0.544 | +0.082 | 0.509 | 0.509 |
+| has_back_color::brown = 0 | 4689 | 1092/3597 | 1.0000 | tie | 392 | 415.6 | 1.00e+00 | 1.00e+00 | 4.05e-03 | 1.00e+00 | 0.526 | +0.056 | 0.504 | 0.505 |
+| has_head_pattern::masked = 1 | 252 | 77/175 | 1.0000 | tie | 11 | 21.9 | 1.88e-01 | 1.00e+00 | 5.26e-03 | 1.00e+00 | 0.511 | +0.043 | 0.505 | 0.500 |
+| has_primary_color::brown = 0 | 4357 | 1034/3323 | 1.0000 | tie | 361 | 385.7 | 2.63e-01 | 1.00e+00 | 5.46e-03 | 1.00e+00 | 0.534 | +0.066 | 0.508 | 0.507 |
+| has_shape::pigeon-like = 0 | 5424 | 1199/4225 | 1.0000 | tie | 468 | 482.2 | 1.00e+00 | 1.00e+00 | 6.58e-03 | 1.00e+00 | 0.498 | -0.005 | 0.497 | 0.500 |
+| has_belly_pattern::multi-colored = 0 | 4874 | 1152/3722 | 1.0000 | tie | 411 | 431.6 | 1.00e+00 | 1.00e+00 | 6.78e-03 | 1.00e+00 | 0.536 | +0.082 | 0.506 | 0.509 |
+| has_bill_shape::dagger = 1 | 786 | 235/551 | 1.0000 | tie | 51 | 68.5 | 2.23e-02 | 1.00e+00 | 8.70e-03 | 1.00e+00 | 0.530 | +0.074 | 0.495 | 0.499 |
+| has_head_pattern::eyeline = 1 | 670 | 122/548 | 1.0000 | tie | 44 | 60.2 | 6.98e-01 | 1.00e+00 | 1.00e-02 | 1.00e+00 | 0.487 | -0.034 | 0.498 | 0.497 |
+| has_bill_color::buff = 1 | 823 | 189/634 | 1.0000 | tie | 56 | 73.0 | 4.73e-02 | 1.00e+00 | 1.25e-02 | 1.00e+00 | 0.503 | +0.008 | 0.498 | 0.493 |
+| has_upperparts_color::brown = 0 | 4411 | 1050/3361 | 1.0000 | tie | 369 | 390.4 | 2.55e-01 | 1.00e+00 | 1.28e-02 | 1.00e+00 | 0.536 | +0.071 | 0.507 | 0.508 |
+| has_belly_pattern::solid = 1 | 3321 | 731/2590 | 1.0000 | tie | 271 | 295.3 | 1.00e+00 | 1.00e+00 | 1.33e-02 | 1.00e+00 | 0.498 | -0.004 | 0.505 | 0.508 |
+| has_crown_color::brown = 0 | 4716 | 1133/3583 | 1.0000 | tie | 399 | 417.1 | 1.00e+00 | 1.00e+00 | 1.99e-02 | 1.00e+00 | 0.544 | +0.094 | 0.504 | 0.506 |
+| has_forehead_color::brown = 0 | 4796 | 1141/3655 | 1.0000 | tie | 407 | 424.5 | 3.59e-02 | 1.00e+00 | 2.08e-02 | 1.00e+00 | 0.539 | +0.086 | 0.508 | 0.502 |
+| has_primary_color::blue = 1 | 367 | 24/343 | 1.0000 | tie | 23 | 33.9 | 1.04e-01 | 1.00e+00 | 2.13e-02 | 1.00e+00 | 0.471 | -0.098 | 0.501 | 0.502 |
+| has_leg_color::brown = 0 | 5348 | 1230/4118 | 1.0000 | tie | 462 | 474.3 | 1.00e+00 | 1.00e+00 | 2.40e-02 | 1.00e+00 | 0.522 | +0.070 | 0.504 | 0.507 |
+| has_shape::upland-ground-like = 0 | 5662 | 1257/4405 | 1.0000 | tie | 496 | 503.2 | 1.00e+00 | 1.00e+00 | 2.44e-02 | 1.00e+00 | 0.501 | +0.006 | 0.498 | 0.500 |
+| has_wing_color::blue = 1 | 296 | 13/283 | 1.0000 | tie | 18 | 27.5 | 6.22e-01 | 1.00e+00 | 2.63e-02 | 1.00e+00 | 0.474 | -0.099 | 0.499 | 0.500 |
+| has_bill_color::black = 0 | 3219 | 825/2394 | 1.0000 | tie | 263 | 283.5 | 4.69e-01 | 1.00e+00 | 3.11e-02 | 1.00e+00 | 0.556 | +0.093 | 0.497 | 0.501 |
+
+Every candidate, eligible or not, is in the `.json` next to this file.
+

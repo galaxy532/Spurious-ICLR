@@ -1,0 +1,15 @@
+cub_meta self-test
+  ok   find_cub locates a real-shaped tree
+attribute labels: 100%|██████████| 36/36 [00:00<00:00, 289262.34line/s]
+  ok   attributes recovered exactly; the six-field line is counted, not dropped
+  ok   part visibility recovered exactly
+  ok   attribute names read from the archive root
+attribute labels: 100%|██████████| 35/35 [00:00<00:00, 457322.87line/s]
+  ok   a missing (image, attribute) pair is caught
+scan archive: 11member [00:00, 8396.24member/s]
+###################################################################################################################################################################### 100.0%
+  ok   archive extraction takes the 5 text files and no image
+  ok   the hand-extracted layout (tar with the member list) is found, names included
+download: 100%|██████████| 300000/300000 [00:00<00:00, 781062197.39B/s]
+  ok   download delivers identical bytes via curl, urllib
+SELF-TEST OK

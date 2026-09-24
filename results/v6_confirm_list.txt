@@ -1,0 +1,3 @@
+results/features_v6_waterbirds_dinov2_train_has-breast-pattern-striped-1.npz
+results/features_v6_waterbirds_dinov2_train_has-nape-color-black-0.npz
+results/features_v6_waterbirds_dinov2_train_has-upperparts-color-blue-1.npz

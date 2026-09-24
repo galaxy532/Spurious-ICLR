@@ -1,39 +1,71 @@
-nohup: ignoring input
-train bundle: features_v4_waterbirds_dinov2_train.npz
-test bundle:  features_v3_waterbirds_dinov2_test.npz
-[03:39:18] START 00_selftest_cub_meta: python cub_meta.py --self-test
+# Session 6 summary (20260924_033917)
+
+Started 2026-09-24 03:39:17 UTC on n3shwd4y5g.
+
+- train bundle: `features_v4_waterbirds_dinov2_train.npz`
+- test bundle (replication): `features_v3_waterbirds_dinov2_test.npz`
+- minimum group size: 0.01 of n
+- no GPU work in this session.
+
+## 00_selftest_cub_meta
+
+- command: `python cub_meta.py --self-test`
+- start: 03:39:18, end: 03:39:18, duration: 0 min 0 s
+- exit code: **0** (ok)
+- log: `results/logs/session6_20260924_033917/00_selftest_cub_meta.log`
+- new files in results/: 
+
+```
 cub_meta self-test
   ok   find_cub locates a real-shaped tree
-attribute labels:   0%|          | 0/36 [00:00<?, ?line/s]attribute labels: 100%|██████████| 36/36 [00:00<00:00, 289262.34line/s]
+attribute labels: 100%|██████████| 36/36 [00:00<00:00, 289262.34line/s]
   ok   attributes recovered exactly; the six-field line is counted, not dropped
   ok   part visibility recovered exactly
   ok   attribute names read from the archive root
-attribute labels:   0%|          | 0/35 [00:00<?, ?line/s]attribute labels: 100%|██████████| 35/35 [00:00<00:00, 457322.87line/s]
+attribute labels: 100%|██████████| 35/35 [00:00<00:00, 457322.87line/s]
   ok   a missing (image, attribute) pair is caught
-scan archive: 0member [00:00, ?member/s]scan archive: 11member [00:00, 8396.24member/s]
-###################################################################################################################################################################### 100.0%
+scan archive: 11member [00:00, 8396.24member/s]
+###################################################################################################################################################################### 100.0%
   ok   archive extraction takes the 5 text files and no image
   ok   the hand-extracted layout (tar with the member list) is found, names included
-download:   0%|          | 0/300000 [00:00<?, ?B/s]download: 100%|██████████| 300000/300000 [00:00<00:00, 781062197.39B/s]
+download: 100%|██████████| 300000/300000 [00:00<00:00, 781062197.39B/s]
   ok   download delivers identical bytes via curl, urllib
 SELF-TEST OK
-[03:39:18] END   00_selftest_cub_meta: exit 0 after 0 min
-[03:39:18] START 01_selftest_sv_screen: python sv_screen.py --self-test
+```
+
+## 01_selftest_sv_screen
+
+- command: `python sv_screen.py --self-test`
+- start: 03:39:18, end: 03:39:21, duration: 0 min 3 s
+- exit code: **0** (ok)
+- log: `results/logs/session6_20260924_033917/01_selftest_sv_screen.log`
+- new files in results/: 
+
+```
 sv_screen self-test
   ok   exact label-stratified p (min) 0.0491 matches Monte Carlo 0.0507
   ok   exact depletion p 0.0841 matches Monte Carlo 0.0838 (k=1, expected 3.68)
   ok   Holm step-down on a known vector
   ok   small label-pure group: AUC 0.545 passes, phi +0.265 catches it
-candidates:   0%|          | 0/41 [00:00<?, ?cand/s]candidates: 100%|██████████| 41/41 [00:00<00:00, 1695.04cand/s]
+candidates: 100%|██████████| 41/41 [00:00<00:00, 1695.04cand/s]
   ok   planted margin-free group found (ratio 15.093, Holm p 4.4e-26); 0 of 40 random decoys called (|S| = 20)
-  c.npz                             :   0%|          | 0/5 [00:00<?, ?C/s]  c.npz                             : 100%|██████████| 5/5 [00:00<00:00, 19599.55C/s]
+  c.npz                             : 100%|██████████| 5/5 [00:00<00:00, 19599.55C/s]
   ok   unmodified group_margins.py reports the same ratio (15.093054)
   ok   detectability floor at n=4795, |S|=421, 650 tests: m >= 102
 SELF-TEST OK
-[03:39:21] END   01_selftest_sv_screen: exit 0 after 0 min
-[03:39:21] START 02_integration: python validate_session6.py
+```
+
+## 02_integration
+
+- command: `python validate_session6.py`
+- start: 03:39:21, end: 03:39:29, duration: 0 min 8 s
+- exit code: **0** (ok)
+- log: `results/logs/session6_20260924_033917/02_integration.log`
+- new files in results/: 
+
+```
 session 6 integration check
-checks:   0%|          | 0/7 [00:00<?, ?check/s]checks:  14%|█▍        | 1/7 [00:01<00:07,  1.31s/check]checks:  29%|██▊       | 2/7 [00:02<00:06,  1.29s/check]checks:  43%|████▎     | 3/7 [00:03<00:05,  1.26s/check]checks:  57%|█████▋    | 4/7 [00:05<00:03,  1.24s/check]checks:  86%|████████▌ | 6/7 [00:07<00:01,  1.22s/check]checks: 100%|██████████| 7/7 [00:07<00:00,  1.12s/check]
+checks: 100%|██████████| 7/7 [00:07<00:00,  1.12s/check]
 
   cub_meta.py CLI joins a mini tree
   sv_screen.py CLI finds the planted attribute, no coin-flip one
@@ -44,11 +76,24 @@ session 6 integration check
   cub_meta.py refuses a tree with a Waterbirds image missing
 
 INTEGRATION OK -- the real command line joins the CUB metadata, finds a planted margin-free attribute and no coin-flip one, and the unmodified group_margins.py agrees with the screen.
-[03:39:29] END   02_integration: exit 0 after 0 min
-[03:39:29] START 20_cub_meta: python cub_meta.py --fractions results/v5_bird_fraction.csv
-md5:   0%|          | 0/1150585339 [00:00<?, ?B/s]md5:  26%|██▌       | 294649856/1150585339 [00:00<00:01, 586373926.57B/s]md5:  51%|█████     | 589299712/1150585339 [00:01<00:00, 587942178.37B/s]md5:  77%|███████▋  | 884998144/1150585339 [00:01<00:00, 589358505.87B/s]md5: 100%|██████████| 1150585339/1150585339 [00:01<00:00, 589546027.12B/s]
+```
+
+## 10_bird_fraction
+
+- reused `results/v5_bird_fraction.csv` from session 5.
+
+## 20_cub_meta
+
+- command: `python cub_meta.py --fractions results/v5_bird_fraction.csv`
+- start: 03:39:29, end: 03:39:36, duration: 0 min 7 s
+- exit code: **0** (ok)
+- log: `results/logs/session6_20260924_033917/20_cub_meta.log`
+- new files in results/: v6_cub_meta.json v6_cub_meta.md v6_cub_meta.npz 
+
+```
+md5: 100%|██████████| 1150585339/1150585339 [00:01<00:00, 589546027.12B/s]
 CUB directory: /notebooks/Spurious-ICLR/../data/CUB_200_2011
-attribute labels:   0%|          | 0/3677856 [00:00<?, ?line/s]attribute labels:  16%|█▌        | 574599/3677856 [00:00<00:02, 1149188.68line/s]attribute labels:  34%|███▍      | 1256542/3677856 [00:01<00:01, 1275472.22line/s]attribute labels:  53%|█████▎    | 1964713/3677856 [00:01<00:01, 1339749.58line/s]attribute labels:  73%|███████▎  | 2672924/3677856 [00:02<00:00, 1370014.39line/s]attribute labels:  92%|█████████▏| 3384615/3677856 [00:02<00:00, 1389254.74line/s]attribute labels: 100%|██████████| 3677856/3677856 [00:02<00:00, 1358910.61line/s]
+attribute labels: 100%|██████████| 3677856/3677856 [00:02<00:00, 1358910.61line/s]
 # CUB-200-2011 metadata joined to Waterbirds (session 6)
 
 Read-only join by filename. Nothing is modified; no image is opened.
@@ -87,13 +132,22 @@ Read-only join by filename. Nothing is modified; no image is opened.
 
 
 wrote results/v6_cub_meta.npz
-[03:39:36] END   20_cub_meta: exit 0 after 0 min
-[03:39:36] START 30_sv_screen: python sv_screen.py --bundle features_v4_waterbirds_dinov2_train.npz --meta results/v6_cub_meta.npz --min-frac 0.01
+```
+
+## 30_sv_screen
+
+- command: `python sv_screen.py --bundle features_v4_waterbirds_dinov2_train.npz --meta results/v6_cub_meta.npz --min-frac 0.01`
+- start: 03:39:36, end: 03:39:50, duration: 0 min 14 s
+- exit code: **0** (ok)
+- log: `results/logs/session6_20260924_033917/30_sv_screen.log`
+- new files in results/: features_v6_waterbirds_dinov2_train_has-breast-pattern-striped-1.npz features_v6_waterbirds_dinov2_train_has-nape-color-black-0.npz features_v6_waterbirds_dinov2_train_has-upperparts-color-blue-1.npz v6_confirm_list.txt v6_sv_screen.json v6_sv_screen.md v6_sv_screen_full.md 
+
+```
 row order check: ok (4795 rows, y and place both match)
 separator: margin 0.6312 at C = 1e+06, plateau 1.3e-09
-candidates:   0%|          | 0/650 [00:00<?, ?cand/s]candidates:  19%|█▊        | 121/650 [00:00<00:02, 241.07cand/s]candidates:  37%|███▋      | 242/650 [00:01<00:01, 239.68cand/s]candidates:  59%|█████▉    | 386/650 [00:01<00:01, 261.59cand/s]candidates:  80%|███████▉  | 517/650 [00:02<00:00, 247.74cand/s]candidates:  99%|█████████▉| 642/650 [00:02<00:00, 246.15cand/s]candidates: 100%|██████████| 650/650 [00:02<00:00, 246.14cand/s]
+candidates: 100%|██████████| 650/650 [00:02<00:00, 246.14cand/s]
 |S| = 418; 323 of 650 candidates eligible; floor m >= 96; hits: 0
-confirm bundles:   0%|          | 0/3 [00:00<?, ?bundle/s]confirm bundles:  33%|███▎      | 1/3 [00:01<00:02,  1.21s/bundle]confirm bundles:  67%|██████▋   | 2/3 [00:02<00:01,  1.21s/bundle]confirm bundles: 100%|██████████| 3/3 [00:03<00:00,  1.23s/bundle]confirm bundles: 100%|██████████| 3/3 [00:03<00:00,  1.22s/bundle]
+confirm bundles: 100%|██████████| 3/3 [00:03<00:00,  1.22s/bundle]
 # Session 6 -- does any image property avoid the margin set?
 
 - bundle: `features_v4_waterbirds_dinov2_train.npz`   n = 4795
@@ -148,29 +202,47 @@ Measured next by the unmodified `group_margins.py`; `--compare` checks agreement
 
 Every candidate, eligible or not, is in the `.json` next to this file.
 
-[03:39:50] END   30_sv_screen: exit 0 after 0 min
-[03:39:50] START 40_confirm_margins: python group_margins.py --no-lp --tag v6_confirm_margins --bundles results/features_v6_waterbirds_dinov2_train_has-breast-pattern-striped-1.npz results/features_v6_waterbirds_dinov2_train_has-nape-color-black-0.npz results/features_v6_waterbirds_dinov2_train_has-upperparts-color-blue-1.npz
-bundles:   0%|          | 0/3 [00:00<?, ?bundle/s]
+```
+
+## 40_confirm_margins
+
+- command: `python group_margins.py --no-lp --tag v6_confirm_margins --bundles results/features_v6_waterbirds_dinov2_train_has-breast-pattern-striped-1.npz results/features_v6_waterbirds_dinov2_train_has-nape-color-black-0.npz results/features_v6_waterbirds_dinov2_train_has-upperparts-color-blue-1.npz`
+- start: 03:39:50, end: 03:40:10, duration: 0 min 20 s
+- exit code: **0** (ok)
+- log: `results/logs/session6_20260924_033917/40_confirm_margins.log`
+- new files in results/: v6_confirm_margins.json v6_confirm_margins.md 
+
+```
+bundles:   0%|          | 0/3 [00:00<?, ?bundle/s]
 results/features_v6_waterbirds_dinov2_train_has-breast-pattern-striped-1.npz
 
-  features_v6_waterbirds_dinov2_trai:   0%|          | 0/5 [00:00<?, ?C/s][A  features_v6_waterbirds_dinov2_trai: 100%|██████████| 5/5 [00:00<00:00, 1579.30C/s]
-bundles:  33%|███▎      | 1/3 [00:06<00:12,  6.42s/bundle]  margin 0.6312   gamma(g=0) 1.0000   gamma(g=1) 1.0000   tie -- the setting sits on the alpha = 1 transition   beta predicted 1.0000   plateau settled
+  features_v6_waterbirds_dinov2_trai: 100%|██████████| 5/5 [00:00<00:00, 1579.30C/s]
+bundles:  33%|███▎      | 1/3 [00:06<00:12,  6.42s/bundle]  margin 0.6312   gamma(g=0) 1.0000   gamma(g=1) 1.0000   tie -- the setting sits on the alpha = 1 transition   beta predicted 1.0000   plateau settled
 
 results/features_v6_waterbirds_dinov2_train_has-nape-color-black-0.npz
 
-  features_v6_waterbirds_dinov2_trai:   0%|          | 0/5 [00:00<?, ?C/s][A  features_v6_waterbirds_dinov2_trai: 100%|██████████| 5/5 [00:00<00:00, 1678.26C/s]
-bundles:  67%|██████▋   | 2/3 [00:12<00:06,  6.09s/bundle]  margin 0.6312   gamma(g=0) 1.0000   gamma(g=1) 1.0000   tie -- the setting sits on the alpha = 1 transition   beta predicted 1.0000   plateau settled
+  features_v6_waterbirds_dinov2_trai: 100%|██████████| 5/5 [00:00<00:00, 1678.26C/s]
+bundles:  67%|██████▋   | 2/3 [00:12<00:06,  6.09s/bundle]  margin 0.6312   gamma(g=0) 1.0000   gamma(g=1) 1.0000   tie -- the setting sits on the alpha = 1 transition   beta predicted 1.0000   plateau settled
 
 results/features_v6_waterbirds_dinov2_train_has-upperparts-color-blue-1.npz
 
-  features_v6_waterbirds_dinov2_trai:   0%|          | 0/5 [00:00<?, ?C/s][A  features_v6_waterbirds_dinov2_trai: 100%|██████████| 5/5 [00:00<00:00, 1495.51C/s]
-bundles: 100%|██████████| 3/3 [00:18<00:00,  6.16s/bundle]bundles: 100%|██████████| 3/3 [00:18<00:00,  6.17s/bundle]
+  features_v6_waterbirds_dinov2_trai: 100%|██████████| 5/5 [00:00<00:00, 1495.51C/s]
+bundles: 100%|██████████| 3/3 [00:18<00:00,  6.17s/bundle]
   margin 0.6312   gamma(g=0) 1.0000   gamma(g=1) 1.0000   tie -- the setting sits on the alpha = 1 transition   beta predicted 1.0000   plateau settled
 
 wrote results/v6_confirm_margins.json
 wrote results/v6_confirm_margins.md
-[03:40:10] END   40_confirm_margins: exit 0 after 0 min
-[03:40:10] START 41_confirm_check: python sv_screen.py --compare results/v6_confirm_margins.json
+```
+
+## 41_confirm_check
+
+- command: `python sv_screen.py --compare results/v6_confirm_margins.json`
+- start: 03:40:10, end: 03:40:11, duration: 0 min 1 s
+- exit code: **0** (ok)
+- log: `results/logs/session6_20260924_033917/41_confirm_check.log`
+- new files in results/: v6_confirm_check.md 
+
+```
 # Session 6 -- screen vs the unmodified group_margins.py
 
 The separator does not depend on g, so the two must agree to solver precision (LinearSVC shuffles its coordinates, so ~1e-9, checked at 1e-4).
@@ -183,13 +255,22 @@ The separator does not depend on g, so the two must agree to solver precision (L
 
 **AGREEMENT OK**
 
-[03:40:11] END   41_confirm_check: exit 0 after 0 min
-[03:40:11] START 50_sv_screen_test: python sv_screen.py --bundle features_v3_waterbirds_dinov2_test.npz --split test --meta results/v6_cub_meta.npz --min-frac 0.01 --tag v6_sv_screen_test --no-confirm
+```
+
+## 50_sv_screen_test
+
+- command: `python sv_screen.py --bundle features_v3_waterbirds_dinov2_test.npz --split test --meta results/v6_cub_meta.npz --min-frac 0.01 --tag v6_sv_screen_test --no-confirm`
+- start: 03:40:11, end: 03:40:29, duration: 0 min 18 s
+- exit code: **0** (ok)
+- log: `results/logs/session6_20260924_033917/50_sv_screen_test.log`
+- new files in results/: v6_sv_screen_test.json v6_sv_screen_test.md v6_sv_screen_test_full.md 
+
+```
 row order check: ok (5794 rows, y and place both match)
 separator: margin 0.3505 at C = 1e+06, plateau 6.0e-10
-candidates:   0%|          | 0/650 [00:00<?, ?cand/s]candidates:  14%|█▍        | 94/650 [00:00<00:02, 187.20cand/s]candidates:  29%|██▉       | 188/650 [00:01<00:02, 178.96cand/s]candidates:  43%|████▎     | 282/650 [00:01<00:02, 182.97cand/s]candidates:  59%|█████▉    | 384/650 [00:02<00:01, 191.04cand/s]candidates:  74%|███████▍  | 480/650 [00:02<00:00, 185.52cand/s]candidates:  88%|████████▊ | 573/650 [00:03<00:00, 183.97cand/s]candidates: 100%|██████████| 650/650 [00:03<00:00, 179.55cand/s]
+candidates: 100%|██████████| 650/650 [00:03<00:00, 179.55cand/s]
 |S| = 515; 362 of 650 candidates eligible; floor m >= 95; hits: 0
-confirm bundles: 0bundle [00:00, ?bundle/s]confirm bundles: 0bundle [00:00, ?bundle/s]
+confirm bundles: 0bundle [00:00, ?bundle/s]
 # Session 6 -- does any image property avoid the margin set?
 
 - bundle: `features_v3_waterbirds_dinov2_test.npz`   n = 5794
@@ -236,8 +317,17 @@ separator: margin 0.3505 at C = 1e+06, plateau 6.0e-10
 
 Every candidate, eligible or not, is in the `.json` next to this file.
 
-[03:40:29] END   50_sv_screen_test: exit 0 after 0 min
-[03:40:29] START 51_replicate: python sv_screen.py --replicate results/v6_sv_screen_test.json
+```
+
+## 51_replicate
+
+- command: `python sv_screen.py --replicate results/v6_sv_screen_test.json`
+- start: 03:40:29, end: 03:40:31, duration: 0 min 2 s
+- exit code: **0** (ok)
+- log: `results/logs/session6_20260924_033917/51_replicate.log`
+- new files in results/: v6_replication.md 
+
+```
 # Session 6 -- do the train-split hits replicate on the test split?
 
 - train: `features_v4_waterbirds_dinov2_train.npz`, |S| = 418
@@ -253,5 +343,21 @@ For information only, the three best-ranked train candidates on test:
 | has_nape_color::black = 0 | 3505, 309, 1.0000 | 4287 | 374 / 382.8 | 1.0000 | tie | 1.00e+00 | 1.00e+00 | no |
 | has_upperparts_color::blue = 1 | 244, 23, 1.0000 | 301 | 18 / 28.0 | 1.0000 | tie | 1.54e-01 | 4.61e-01 | no |
 
-[03:40:31] END   51_replicate: exit 0 after 0 min
-done. Read results/logs/session6_20260924_033917/SUMMARY.md
+```
+
+## WHAT TO DO NEXT
+
+Read in this order.
+
+1. `results/v6_cub_meta.md` -- the verdict must be OK (every Waterbirds image
+   found in CUB, every attribute and part present exactly once). If not, nothing
+   below was run.
+2. `results/v6_confirm_check.md` -- must say AGREEMENT OK. If not, the screen
+   is not measuring what group_margins.py measures and must not be read.
+3. `results/v6_sv_screen.md` -- the Answer section, then the depletion table.
+   Note |S| and the detectability floor at the top.
+4. `results/v6_replication.md` -- only meaningful if step 3 has a hit. A hit
+   that does not replicate on the test split is not a finding.
+
+Total wall clock: 1 min.
+

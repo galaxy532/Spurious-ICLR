@@ -1,0 +1,74 @@
+{
+ "n_waterbirds": 11788,
+ "cub_dir": "/notebooks/Spurious-ICLR/../data/CUB_200_2011",
+ "n_cub_images": 11788,
+ "n_joined": 11788,
+ "attributes": {
+  "lines": 3677856,
+  "irregular_lines": 606,
+  "unparsable_lines": 0,
+  "n_attr": 312,
+  "pairs_missing": 0,
+  "pairs_duplicated": 0
+ },
+ "parts": {
+  "n_parts": 15,
+  "pairs_missing": 0,
+  "pairs_duplicated": 0
+ },
+ "bbox": {
+  "missing": 0
+ },
+ "attr_names_file": "/notebooks/data/attributes.txt",
+ "n_missing_fraction_rows": 0,
+ "attr_coverage_ok": true,
+ "parts_coverage_ok": true,
+ "bbox_ok": true,
+ "attr_duplicates_ok": true,
+ "bird_in_frame_rate": 0.9357821513403461,
+ "size_match_all": true,
+ "dist_bird_frac": {
+  "min": 0.0100533333333333,
+  "q05": 0.040439881736526885,
+  "q25": 0.07711383147032692,
+  "median": 0.1158452873563218,
+  "q75": 0.16661598320725166,
+  "q95": 0.2699255278688524,
+  "max": 0.7346006006006006
+ },
+ "dist_bbox_area_frac": {
+  "min": 0.05005427974947808,
+  "q05": 0.11211349496129693,
+  "q25": 0.20749077181208053,
+  "median": 0.3173631828642693,
+  "q75": 0.4540940243127743,
+  "q95": 0.6896351210826885,
+  "max": 1.0
+ },
+ "dist_n_visible_parts": {
+  "min": 3.0,
+  "q05": 9.0,
+  "q25": 11.0,
+  "median": 12.0,
+  "q75": 13.0,
+  "q95": 13.0,
+  "max": 15.0
+ },
+ "dist_frac_attr_not_visible": {
+  "min": 0.0,
+  "q05": 0.0,
+  "q25": 0.0,
+  "median": 0.04807692307692308,
+  "q75": 0.15705128205128205,
+  "q95": 0.36217948717948717,
+  "max": 0.8910256410256411
+ },
+ "ok": true,
+ "fetch": {
+  "source": "existing extraction",
+  "tgz": "/notebooks/data/CUB_200_2011.tgz",
+  "md5": "97eceeb196236b17998738112f37df78",
+  "md5_expected": "97eceeb196236b17998738112f37df78",
+  "md5_ok": true
+ }
+}
