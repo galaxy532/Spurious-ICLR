@@ -1,0 +1,12 @@
+session 6 integration check
+checks: 100%|██████████| 7/7 [00:08<00:00,  1.20s/check]
+
+  cub_meta.py CLI joins a mini tree
+  sv_screen.py CLI finds the planted attribute, no coin-flip one
+  unmodified group_margins.py measures the confirmation bundles
+  sv_screen.py --compare reports agreement
+  confirmation bundle features are bit-identical to the source
+  the replication run on the test split confirms the planted hit
+  cub_meta.py refuses a tree with a Waterbirds image missing
+
+INTEGRATION OK -- the real command line joins the CUB metadata, finds a planted margin-free attribute and no coin-flip one, and the unmodified group_margins.py agrees with the screen.

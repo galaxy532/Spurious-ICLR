@@ -1,0 +1,15 @@
+== date
+Thu Sep 24 03:19:59 UTC 2026
+== git
+6a0ad9b364892b1efc9b9895cad16541e4ee2e5b
+?? results/logs/session6_20260924_031959/
+?? results/logs/session6_nohup.out
+?? results/v5_bird_fraction.csv
+== python
+Python 3.12.13
+numpy 2.5.3 scipy 1.18.1 sklearn 1.9.1 pandas 3.0.6
+== data root
+/notebooks/Spurious-ICLR/../data
+== bundles
+-rw-r--r-- 1 root root 34214496 Sep 18 03:26 features_v3_waterbirds_dinov2_test.npz
+-rw-r--r-- 1 root root 28315610 Sep 18 21:58 features_v4_waterbirds_dinov2_train.npz

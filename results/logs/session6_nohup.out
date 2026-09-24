@@ -1,0 +1,89 @@
+nohup: ignoring input
+train bundle: features_v4_waterbirds_dinov2_train.npz
+test bundle:  features_v3_waterbirds_dinov2_test.npz
+[03:20:01] START 00_selftest_cub_meta: python cub_meta.py --self-test
+cub_meta self-test
+  ok   find_cub locates a real-shaped tree
+attribute labels:   0%|          | 0/36 [00:00<?, ?line/s]attribute labels: 100%|██████████| 36/36 [00:00<00:00, 338553.69line/s]
+  ok   attributes recovered exactly; the six-field line is counted, not dropped
+  ok   part visibility recovered exactly
+  ok   attribute names read from the archive root
+attribute labels:   0%|          | 0/35 [00:00<?, ?line/s]attribute labels: 100%|██████████| 35/35 [00:00<00:00, 343795.41line/s]
+  ok   a missing (image, attribute) pair is caught
+scan archive: 0member [00:00, ?member/s]scan archive: 11member [00:00, 8155.80member/s]
+  ok   archive extraction takes the 5 text files and no image
+SELF-TEST OK
+[03:20:01] END   00_selftest_cub_meta: exit 0 after 0 min
+[03:20:01] START 01_selftest_sv_screen: python sv_screen.py --self-test
+sv_screen self-test
+  ok   exact label-stratified p (min) 0.0491 matches Monte Carlo 0.0507
+  ok   exact depletion p 0.0841 matches Monte Carlo 0.0838 (k=1, expected 3.68)
+  ok   Holm step-down on a known vector
+  ok   small label-pure group: AUC 0.545 passes, phi +0.265 catches it
+candidates:   0%|          | 0/41 [00:00<?, ?cand/s]candidates: 100%|██████████| 41/41 [00:00<00:00, 1904.20cand/s]
+  ok   planted margin-free group found (ratio 15.093, Holm p 4.4e-26); 0 of 40 random decoys called (|S| = 20)
+  c.npz                             :   0%|          | 0/5 [00:00<?, ?C/s]  c.npz                             : 100%|██████████| 5/5 [00:00<00:00, 19275.29C/s]
+  ok   unmodified group_margins.py reports the same ratio (15.093054)
+  ok   detectability floor at n=4795, |S|=421, 650 tests: m >= 102
+SELF-TEST OK
+[03:20:04] END   01_selftest_sv_screen: exit 0 after 0 min
+[03:20:04] START 02_integration: python validate_session6.py
+session 6 integration check
+checks:   0%|          | 0/7 [00:00<?, ?check/s]checks:  14%|█▍        | 1/7 [00:01<00:08,  1.44s/check]checks:  29%|██▊       | 2/7 [00:02<00:06,  1.39s/check]checks:  43%|████▎     | 3/7 [00:04<00:05,  1.34s/check]checks:  57%|█████▋    | 4/7 [00:05<00:03,  1.32s/check]checks:  86%|████████▌ | 6/7 [00:07<00:01,  1.30s/check]checks: 100%|██████████| 7/7 [00:08<00:00,  1.20s/check]
+
+  cub_meta.py CLI joins a mini tree
+  sv_screen.py CLI finds the planted attribute, no coin-flip one
+  unmodified group_margins.py measures the confirmation bundles
+  sv_screen.py --compare reports agreement
+  confirmation bundle features are bit-identical to the source
+  the replication run on the test split confirms the planted hit
+  cub_meta.py refuses a tree with a Waterbirds image missing
+
+INTEGRATION OK -- the real command line joins the CUB metadata, finds a planted margin-free attribute and no coin-flip one, and the unmodified group_margins.py agrees with the screen.
+[03:20:12] END   02_integration: exit 0 after 0 min
+[03:20:12] START 20_cub_meta: python cub_meta.py --fractions results/v5_bird_fraction.csv
+downloading CUB-200-2011 (1.2 GB; only text files will be extracted) into /notebooks/Spurious-ICLR/../data ...
+download: 0B [00:00, ?B/s]download: 0B [00:00, ?B/s]
+Traceback (most recent call last):
+  File "/notebooks/Spurious-ICLR/cub_meta.py", line 158, in fetch_cub
+    urllib.request.urlretrieve(CUB_URL, part, reporthook=hook)
+  File "/usr/lib/python3.12/urllib/request.py", line 240, in urlretrieve
+    with contextlib.closing(urlopen(url, data)) as fp:
+                            ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 215, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 521, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 630, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 559, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 492, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 639, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 403: Forbidden
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/notebooks/Spurious-ICLR/cub_meta.py", line 571, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/notebooks/Spurious-ICLR/cub_meta.py", line 544, in main
+    fetch = fetch_cub(root)
+            ^^^^^^^^^^^^^^^
+  File "/notebooks/Spurious-ICLR/cub_meta.py", line 162, in fetch_cub
+    raise RuntimeError(
+RuntimeError: could not download CUB-200-2011: HTTP Error 403: Forbidden
+Fetch it by hand -- one public file:
+    cd /notebooks/Spurious-ICLR/../data
+    curl -L -o CUB_200_2011.tgz "https://data.caltech.edu/records/65de6-vp158/files/CUB_200_2011.tgz?download=1"
+    tar xzf CUB_200_2011.tgz CUB_200_2011/images.txt CUB_200_2011/bounding_boxes.txt CUB_200_2011/attributes CUB_200_2011/parts attributes.txt
+
+[03:20:13] END   20_cub_meta: exit 1 after 0 min

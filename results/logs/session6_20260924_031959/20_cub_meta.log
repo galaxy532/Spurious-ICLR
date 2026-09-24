@@ -1,0 +1,44 @@
+downloading CUB-200-2011 (1.2 GB; only text files will be extracted) into /notebooks/Spurious-ICLR/../data ...
+download: 0B [00:00, ?B/s]
+Traceback (most recent call last):
+  File "/notebooks/Spurious-ICLR/cub_meta.py", line 158, in fetch_cub
+    urllib.request.urlretrieve(CUB_URL, part, reporthook=hook)
+  File "/usr/lib/python3.12/urllib/request.py", line 240, in urlretrieve
+    with contextlib.closing(urlopen(url, data)) as fp:
+                            ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 215, in urlopen
+    return opener.open(url, data, timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 521, in open
+    response = meth(req, response)
+               ^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 630, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 559, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 492, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File "/usr/lib/python3.12/urllib/request.py", line 639, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 403: Forbidden
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/notebooks/Spurious-ICLR/cub_meta.py", line 571, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/notebooks/Spurious-ICLR/cub_meta.py", line 544, in main
+    fetch = fetch_cub(root)
+            ^^^^^^^^^^^^^^^
+  File "/notebooks/Spurious-ICLR/cub_meta.py", line 162, in fetch_cub
+    raise RuntimeError(
+RuntimeError: could not download CUB-200-2011: HTTP Error 403: Forbidden
+Fetch it by hand -- one public file:
+    cd /notebooks/Spurious-ICLR/../data
+    curl -L -o CUB_200_2011.tgz "https://data.caltech.edu/records/65de6-vp158/files/CUB_200_2011.tgz?download=1"
+    tar xzf CUB_200_2011.tgz CUB_200_2011/images.txt CUB_200_2011/bounding_boxes.txt CUB_200_2011/attributes CUB_200_2011/parts attributes.txt
+

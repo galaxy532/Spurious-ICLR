@@ -1,0 +1,11 @@
+sv_screen self-test
+  ok   exact label-stratified p (min) 0.0491 matches Monte Carlo 0.0507
+  ok   exact depletion p 0.0841 matches Monte Carlo 0.0838 (k=1, expected 3.68)
+  ok   Holm step-down on a known vector
+  ok   small label-pure group: AUC 0.545 passes, phi +0.265 catches it
+candidates: 100%|██████████| 41/41 [00:00<00:00, 1904.20cand/s]
+  ok   planted margin-free group found (ratio 15.093, Holm p 4.4e-26); 0 of 40 random decoys called (|S| = 20)
+  c.npz                             : 100%|██████████| 5/5 [00:00<00:00, 19275.29C/s]
+  ok   unmodified group_margins.py reports the same ratio (15.093054)
+  ok   detectability floor at n=4795, |S|=421, 650 tests: m >= 102
+SELF-TEST OK
