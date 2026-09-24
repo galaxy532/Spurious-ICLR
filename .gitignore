@@ -45,7 +45,10 @@ features_*/
 *.csv
 *.tsv
 *.parquet
-!results/*.csv          # a small summary csv in results/ is allowed through
+# A small summary csv in results/ is allowed through. The comment must stay on its
+# own line: git does not strip a trailing '# ...', and on the same line it made the
+# pattern match nothing, so results/v5_bird_fraction.csv was never pulled.
+!results/*.csv
 
 # Python
 __pycache__/

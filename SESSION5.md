@@ -1,5 +1,12 @@
 # Session 5 — the alpha > 1 hunt, moved from the images to the PARTITION
 
+> **STATUS, 23 September 2026: RUN AND CLOSED.** Both bird-size partitions tie
+> (median 1.0000; tercile 1.0000 against a matched control of 1.0000). The
+> calibration in Part A turned out to be **vacuous for a pure relabelling** --
+> the corrections are marked in place below (§2, §5.1, §6, §7) and the results
+> and their reading are in **§9**. Aser closed the partition line on 23 Sept; the
+> follow-up is the screen in `SESSION6.md`.
+
 Written 22 September 2026, after session 4 stage A came back a tie. Read
 `THEORY_AND_DFR.md` for the four points and `SESSION4.md` for what was tried
 before this. **There is no GPU work in this session.** It reuses the features
@@ -57,9 +64,19 @@ construction. That is a correctness check. It deliberately removes the one thing
 that matters on real data: the solver's freedom to rotate.
 
 `gamma_g` is measured under the **global** max-margin separator, and the ratio
-exceeds 1 only if one group contributes **no support vector**. When the optimiser
+exceeds 1 only if one group contributes **no support vector**. ~~When the optimiser
 can rotate — and at `d = 768` it can — it trades margin between the groups until
-both bind. Both bind is what a tie is.
+both bind. Both bind is what a tie is.~~
+
+> **CORRECTED 23 Sept 2026.** The struck sentence is wrong whenever only `g`
+> changes. `w_hat` is fitted on `(phi, y)` alone -- `g` never enters the SVM
+> (`group_margins._svc_ladder` takes `X, y`) -- so relabelling the points cannot
+> move the separator and there is nothing for the optimiser to trade. For a pure
+> relabelling the ratio is decided entirely by where the margin points of the ONE
+> fixed separator fall (421 of 4,795 on the dinov2 train bundle): it exceeds 1 if
+> and only if one group contains none of them. The optimiser does rebalance when
+> the FEATURES change (the `translate` sweep, and session 4's degradation), which
+> is a different situation.
 
 So the prior question is not "is Waterbirds asymmetric" but:
 
@@ -71,6 +88,14 @@ rank every point by its own margin under the baseline separator and put the top
 `k` into group 1. That is the most margin-asymmetric partition the dataset
 admits. If the oracle partition ties, **bird size cannot do better**, and the
 whole line is settled for ten minutes of CPU.
+
+> **CORRECTED 23 Sept 2026.** For a relabelling there is no re-solving (see the
+> correction above), so the oracle ratio is arithmetic: the minimum margin of the
+> `k` easiest points divided by the global minimum. It is above 1 by construction
+> whenever group 1 excludes every margin point, so its "YES" says nothing about
+> the instrument. The run confirms it: on every `oracle` and `heavy_tail` row,
+> `target` and `ratio` agree to six digits. What the oracle IS, is the exact
+> maximum ratio a group of size `k` can reach on these features.
 
 The project has precedent for this. `validate_invariance.py` check C2b builds an
 F1-vs-n power curve for the invariance rule, and that curve is why Waterbirds was
@@ -205,6 +230,14 @@ Options: `BUNDLE=<path>`, `RULES="median tercile"`, `NO_DOWNLOAD=1`, `PUSH=1`.
 
 ### 5.1 `results/v5_margin_power.md` — the calibration
 
+> **POST-RUN NOTE, 23 Sept 2026.** Read this section with the corrections in §2.
+> `oracle` and `heavy_tail` are relabellings, so their `target` and `ratio` agree
+> by construction and the Answer section's YES carries no information. Only
+> `pinned` and `translate` change features. Also: the table's `SV g0` / `SV g1`
+> columns are NOT support-vector counts; they count points within 1% of that
+> group's own minimum margin (the same quantity `group_margins.py` calls
+> `n at margin`).
+
 **Check the `pinned` rows first.** They must recover their planted `m1` (1.05 and
 1.60). If they do not, the instrument is broken at this n and d and nothing else
 on the page can be read.
@@ -276,9 +309,16 @@ the alignment identity's prediction for `beta`, which session 5 does **not** do.
    whatever the group variable. Combined with the `q05` ceiling it localises the
    problem to the ess inf. This is a claim about the measurement, so it belongs
    in the paper as a scope statement rather than as a failed experiment.
-2. **Calibration says YES and bird size ties.** The partition is not the lever —
+2. **Calibration says YES and bird size ties.** ~~The partition is not the lever —
    the margin asymmetry that bird size induces is real but too small to clear the
-   coupling ratio. Quantify it with the `q05` ratio and move on.
+   coupling ratio. Quantify it with the `q05` ratio and move on.~~
+   **Corrected 23 Sept 2026** -- this is the outcome that happened, but the struck
+   reading is wrong. `gamma_crit` was never measured and does not enter here: it is
+   the bar for the r-margin ratio `gamma~_min/gamma~_maj`, whereas this instrument
+   measures the full-feature `gamma_g`, for which the alignment identity
+   `gamma_min ~= max(1, alpha)` already puts the bar at 1. What happened is simpler:
+   bird size ties because both halves contain margin points (237 small / 184 large
+   at the median). See §9.
 3. **Calibration says YES and bird size gives a ratio > 1.** The phase-transition
    figure the paper does not have, on real images, with nothing manufactured.
    Next step is `long_horizon.py` on that bundle.
@@ -293,10 +333,13 @@ this way", which is a scope sentence rather than a failed experiment.
 
 ## 7. Known limitations — state these, do not discover them later
 
-- **The oracle sweep is an upper bound in spirit, not a theorem.** The ranking is
+- ~~**The oracle sweep is an upper bound in spirit, not a theorem.** The ranking is
   optimal under the *baseline* separator, and re-solving changes the separator. A
   partition could in principle beat it. Nothing observed so far suggests one
-  does, but it is not proved.
+  does, but it is not proved.~~ **Corrected 23 Sept 2026:** wrong in the other
+  direction. For a pure relabelling the separator does not depend on `g`, so the
+  oracle is the exact maximum ratio over all groups of size `k` -- a theorem, not
+  a heuristic. The caveat applies only when the features change.
 - **The alignment identity is still the load-bearing assumption** if outcome 3
   happens, exactly as flagged in `SESSION4.md` §3. It is the manuscript's own,
   but it should be named as such in any write-up.
@@ -349,3 +392,67 @@ this way", which is a scope sentence rather than a failed experiment.
   only to show that. The first draft of `margin_power.py` used it as the main
   instrument and its self-test failed accordingly — a 1.5× planted gap came back
   a tie. That failure is the reason the `oracle` and `pinned` sweeps exist.
+
+---
+
+## 9. Results, 23 September 2026 (run `results/logs/session5_20260923_040725/`)
+
+The first attempt (`session5_20260923_034835`) aborted at the bundle check, as
+recorded in §8; the second ran end to end in 4 minutes, all four self-checks
+passing.
+
+**Instrument health: clean.** 11,788 / 11,788 masks match their composite's
+dimensions. Leakage AUCs of bird fraction: 0.5425 against `y`, 0.5099 against
+`place`, 0.4962 against the old `g` -- all clean. Plateau 5e-10 to 3e-9. `pinned`
+recovers 1.0500 and 1.6000.
+
+**Headline: both partitions tie.**
+
+| bundle | n | margin | gamma(g=0) | gamma(g=1) | margin points g=0 / g=1 |
+|---|---|---|---|---|---|
+| median (large birds = g=1) | 4795 | 0.6312 | 1.0000 | 1.0000 | 237 / 184 |
+| tercile treatment | 3198 | 0.7938 | 1.0000 | 1.0000 | 213 / 180 |
+| tercile matched control (old g) | 3198 | 0.7938 | 1.0000 | 1.0000 | 331 / 62 |
+
+**Why, in one line.** For a relabelling of fixed features the ratio exceeds 1 if
+and only if one group contains none of the margin points of the single, group-blind
+separator. There are 421 such points here; bird size would have needed every one
+of them to be a small bird.
+
+**The one informative number: where the margin points sit.** (Exact binomial
+p-values, treating the margin points as independent draws -- a heuristic.)
+
+| partition | share of margin points in g=1 | share of g=1 in the data | p |
+|---|---|---|---|
+| bird size, median | 184/421 = 43.7% | 50% | ~0.01 |
+| bird size, tercile | 180/393 = 45.8% | 50% | ~0.11 |
+| old g = 1[place != y] (tercile rows) | 62/393 = 15.8% | 5.0% | ~1e-15 |
+
+Bird size tilts the margin points only faintly toward small birds. The benchmark's
+own background-conflict group is 3.2x over-represented at the margin -- far more
+margin-relevant than bird size -- and still ties, because it holds 62 of them.
+
+**The `translate` rows are the one genuinely re-solved sweep** (they change the
+features). Even a planted 3x gap on half the points comes back 1.000000: once the
+data move, the max-margin solution in d = 768 rebalances until both groups touch
+the margin. That is the mechanism behind session 4's ties.
+
+**`heavy_tail`**: swapping 1% of the oracle group for random members (q = 0.99)
+already returns a tie. One hard member is enough.
+
+**Decision (Aser, 23 Sept 2026):** the bird-size / partition line is CLOSED. The
+follow-up is a pre-registered screen of existing CUB metadata for a group that
+avoids the margin set -- see `SESSION6.md`.
+
+**The insight kept for the manuscript** (Aser: "a very good insight that deserves
+to be mentioned in the paper. But it is not impossible, just almost impossible"):
+on a finite sample the `alpha > 1` branch is a support-set condition. With `S` the
+set of points attaining the global margin, `gamma_min > gamma_maj` requires
+`G_min ∩ S = ∅`. A group whose membership is unrelated to margin rank, of size
+`m`, avoids `|S|` margin points out of `n` with probability
+`C(n-|S|, m) / C(n, m) ≈ (1 - |S|/n)^m` -- about 1e-19 for m = 480 (eps = 0.1)
+here. The population statement (supplementary Eq. eq:margins, an ess inf under
+D_train) is that G_min must put no mass near the supporting hyperplanes of
+`w_hat`; `heterogeneous_margins_draft.tex` already says the larger-margin group's
+examples must be "strictly interior". So `alpha > 1` is not impossible, but it
+needs a group variable that is almost a function of margin rank.
