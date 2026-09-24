@@ -1,0 +1,149 @@
+nohup: ignoring input
+bundles:   0%|          | 0/5 [00:00<?, ?bundle/s]
+[v3_waterbirds_dinov2_l_train]
+
+    dual iterations: 0it [00:00, ?it/s][A
+    dual iterations: 12it [00:00, 22.93it/s][A
+    dual iterations: 24it [00:01, 16.86it/s][A
+    dual iterations: 33it [00:02, 13.90it/s][A
+    dual iterations: 41it [00:02, 12.95it/s][A
+    dual iterations: 48it [00:03, 11.63it/s][A
+    dual iterations: 54it [00:04, 11.14it/s][A
+    dual iterations: 60it [00:04, 11.16it/s][A
+    dual iterations: 67it [00:05, 11.80it/s][A
+    dual iterations: 74it [00:05, 12.05it/s][A
+    dual iterations: 82it [00:06, 12.81it/s][A
+    dual iterations: 89it [00:06, 13.07it/s][A
+    dual iterations: 96it [00:07, 12.78it/s][A
+    dual iterations: 103it [00:08, 12.45it/s][A
+    dual iterations: 111it [00:08, 12.81it/s][A
+    dual iterations: 118it [00:09, 13.05it/s][A
+    dual iterations: 125it [00:09, 13.23it/s][A
+    dual iterations: 132it [00:10, 12.67it/s][A
+    dual iterations: 139it [00:10, 12.38it/s][A
+    dual iterations: 147it [00:11, 13.00it/s][A
+    dual iterations: 154it [00:12, 11.84it/s][A
+    dual iterations: 163it [00:12, 13.19it/s][A
+    dual iterations: 173it [00:13, 14.60it/s][A
+    dual iterations: 182it [00:13, 15.39it/s][A
+    dual iterations: 190it [00:14, 15.55it/s][A
+    dual iterations: 199it [00:14, 15.96it/s][A
+    dual iterations: 208it [00:15, 16.07it/s][A
+    dual iterations: 217it [00:15, 16.39it/s][A
+    dual iterations: 227it [00:16, 16.82it/s][A    dual iterations: 234it [00:16, 13.93it/s]
+bundles:  20%|██        | 1/5 [00:23<01:32, 23.13s/bundle]  A_min 0.22351  A_maj 0.8171  certificate feasible=True gap=5.2e-10
+
+[v3_waterbirds_dinov2_train]
+
+    dual iterations: 0it [00:00, ?it/s][A
+    dual iterations: 12it [00:00, 20.67it/s][A
+    dual iterations: 23it [00:01, 18.60it/s][A
+    dual iterations: 33it [00:01, 17.68it/s][A
+    dual iterations: 42it [00:02, 16.01it/s][A
+    dual iterations: 51it [00:02, 16.62it/s][A
+    dual iterations: 60it [00:03, 14.40it/s][A
+    dual iterations: 68it [00:04, 13.87it/s][A
+    dual iterations: 76it [00:05, 12.34it/s][A
+    dual iterations: 83it [00:05, 12.09it/s][A
+    dual iterations: 90it [00:06, 11.42it/s][A
+    dual iterations: 96it [00:07, 11.17it/s][A
+    dual iterations: 102it [00:07, 11.07it/s][A
+    dual iterations: 108it [00:08, 10.82it/s][A
+    dual iterations: 114it [00:08, 10.79it/s][A
+    dual iterations: 120it [00:09, 10.61it/s][A
+    dual iterations: 126it [00:09, 10.96it/s][A
+    dual iterations: 132it [00:10, 11.05it/s][A
+    dual iterations: 140it [00:11, 11.93it/s][A
+    dual iterations: 148it [00:11, 12.88it/s][A
+    dual iterations: 157it [00:12, 13.73it/s][A
+    dual iterations: 165it [00:12, 13.75it/s][A
+    dual iterations: 173it [00:13, 14.08it/s][A
+    dual iterations: 181it [00:13, 14.46it/s][A
+    dual iterations: 189it [00:14, 14.57it/s][A
+    dual iterations: 198it [00:14, 15.13it/s][A
+    dual iterations: 207it [00:15, 15.45it/s][A
+    dual iterations: 217it [00:15, 16.29it/s][A
+    dual iterations: 226it [00:16, 16.19it/s][A
+    dual iterations: 235it [00:17, 15.84it/s][A
+    dual iterations: 245it [00:17, 16.87it/s][A
+    dual iterations: 254it [00:18, 16.41it/s][A    dual iterations: 261it [00:18, 14.00it/s]
+bundles:  40%|████      | 2/5 [00:48<01:12, 24.30s/bundle]  A_min 0.55906  A_maj 1.9505  certificate feasible=True gap=2.0e-09
+
+[v3_waterbirds_erm_rn50_train]
+
+    dual iterations: 0it [00:00, ?it/s][A
+    dual iterations: 12it [00:00, 21.85it/s][A
+    dual iterations: 23it [00:01, 18.09it/s][A
+    dual iterations: 33it [00:01, 17.17it/s][A
+    dual iterations: 43it [00:02, 17.98it/s][A
+    dual iterations: 53it [00:02, 17.76it/s][A
+    dual iterations: 62it [00:03, 16.14it/s][A
+    dual iterations: 71it [00:04, 16.24it/s][A
+    dual iterations: 80it [00:04, 16.16it/s][A
+    dual iterations: 89it [00:05, 16.16it/s][A
+    dual iterations: 98it [00:05, 15.75it/s][A
+    dual iterations: 108it [00:06, 16.39it/s][A
+    dual iterations: 117it [00:07, 16.09it/s][A
+    dual iterations: 126it [00:07, 15.78it/s][A
+    dual iterations: 134it [00:08, 15.35it/s][A
+    dual iterations: 142it [00:08, 15.26it/s][A    dual iterations: 143it [00:08, 16.31it/s]
+bundles:  60%|██████    | 3/5 [01:02<00:39, 19.57s/bundle]  A_min 0.057631  A_maj 0.2447  certificate feasible=True gap=3.5e-10
+
+[v3_waterbirds_gdro_rn50_train]
+
+    dual iterations: 0it [00:00, ?it/s][A
+    dual iterations: 10it [00:00, 17.85it/s][A
+    dual iterations: 19it [00:01, 14.37it/s][A
+    dual iterations: 27it [00:02, 12.01it/s][A
+    dual iterations: 34it [00:02, 12.00it/s][A
+    dual iterations: 41it [00:03, 12.54it/s][A
+    dual iterations: 48it [00:03, 12.10it/s][A
+    dual iterations: 55it [00:04, 11.50it/s][A
+    dual iterations: 61it [00:04, 11.61it/s][A
+    dual iterations: 68it [00:05, 12.14it/s][A
+    dual iterations: 75it [00:06, 12.25it/s][A
+    dual iterations: 82it [00:06, 12.01it/s][A
+    dual iterations: 89it [00:07, 11.83it/s][A
+    dual iterations: 96it [00:07, 11.90it/s][A
+    dual iterations: 102it [00:08, 11.62it/s][A
+    dual iterations: 108it [00:09, 10.96it/s][A
+    dual iterations: 115it [00:09, 11.60it/s][A
+    dual iterations: 121it [00:10, 11.61it/s][A
+    dual iterations: 128it [00:10, 12.11it/s][A    dual iterations: 132it [00:11, 11.66it/s]
+bundles:  80%|████████  | 4/5 [01:17<00:17, 17.80s/bundle]  A_min 0.030895  A_maj 0.15878  certificate feasible=True gap=2.9e-10
+
+[v3_waterbirds_rwg_rn50_train]
+
+    dual iterations: 0it [00:00, ?it/s][A
+    dual iterations: 11it [00:00, 21.16it/s][A
+    dual iterations: 22it [00:01, 14.34it/s][A
+    dual iterations: 30it [00:01, 14.54it/s][A
+    dual iterations: 38it [00:02, 13.50it/s][A
+    dual iterations: 45it [00:03, 12.98it/s][A
+    dual iterations: 52it [00:03, 13.02it/s][A
+    dual iterations: 59it [00:04, 12.55it/s][A
+    dual iterations: 66it [00:04, 12.90it/s][A
+    dual iterations: 73it [00:05, 12.70it/s][A
+    dual iterations: 80it [00:06, 12.29it/s][A
+    dual iterations: 87it [00:06, 12.59it/s][A
+    dual iterations: 94it [00:07, 12.46it/s][A
+    dual iterations: 101it [00:07, 12.31it/s][A
+    dual iterations: 108it [00:08, 11.89it/s][A
+    dual iterations: 115it [00:08, 12.40it/s][A
+    dual iterations: 124it [00:09, 13.61it/s][A
+    dual iterations: 133it [00:09, 14.76it/s][A    dual iterations: 134it [00:10, 13.36it/s]
+bundles: 100%|██████████| 5/5 [01:31<00:00, 16.63s/bundle]bundles: 100%|██████████| 5/5 [01:31<00:00, 18.37s/bundle]
+  A_min 0.023851  A_maj 0.13728  certificate feasible=True gap=5.0e-10
+synthetic:   0%|          | 0/2 [00:00<?, ?run/s]synthetic:   0%|          | 0/2 [00:00<?, ?run/s]
+
+[synthetic alpha=0.6]
+Traceback (most recent call last):
+  File "/notebooks/Spurious-ICLR/dual_mass_check.py", line 523, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/notebooks/Spurious-ICLR/dual_mass_check.py", line 496, in main
+    s = run_synthetic(at, args.synthetic_T, args.per_decade)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/notebooks/Spurious-ICLR/dual_mass_check.py", line 249, in run_synthetic
+    from synthetic import SyntheticSpec, generate
+ModuleNotFoundError: No module named 'synthetic'
