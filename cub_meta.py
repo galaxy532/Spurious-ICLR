@@ -59,6 +59,8 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
+import subprocess
 import sys
 import tarfile
 import urllib.request
@@ -140,8 +142,43 @@ def extract_text_members(tgz: str, root: str) -> list[str]:
     return got
 
 
+def download(url: str, dest: str, use_curl: bool = True) -> str:
+    """Fetch `url` to `dest`. Returns the method used ("curl" or "urllib").
+
+    curl FIRST. Session 6's first run (24 Sept 2026) got HTTP 403 from CaltechDATA
+    through Python's urllib, while `curl -L` on the same machine and the same URL
+    succeeded. The visible difference between the two requests is the client
+    (urllib sends `User-Agent: Python-urllib/3.x`); rather than guess at the
+    server's rule, use the client that is known to work. curl draws its own
+    progress bar. urllib is kept as a fallback for a machine without curl, and
+    sends a curl-like User-Agent.
+    """
+    curl = shutil.which("curl") if use_curl else None
+    if curl:
+        subprocess.run([curl, "-L", "--fail", "--retry", "3", "--progress-bar",
+                        "-o", dest, url], check=True)
+        return "curl"
+    req = urllib.request.Request(url, headers={"User-Agent": "curl/8.5.0"})
+    with urllib.request.urlopen(req) as r, open(dest, "wb") as fh:
+        total = int(r.headers.get("Content-Length") or 0) or None
+        with pbar(total=total, desc="download", unit="B") as bar:
+            while True:
+                b = r.read(1 << 20)
+                if not b:
+                    break
+                fh.write(b)
+                bar.update(len(b))
+    return "urllib"
+
+
+def check_md5(tgz: str) -> dict:
+    got = _md5(tgz)
+    return {"tgz": tgz, "md5": got, "md5_expected": CUB_MD5,
+            "md5_ok": bool(got == CUB_MD5)}
+
+
 def fetch_cub(root: str) -> dict:
-    """Download (if absent), md5-check (warn only), extract the text members."""
+    """Download (if absent), md5-check (hard), extract the text members."""
     os.makedirs(root, exist_ok=True)
     tgz = os.path.join(root, CUB_TGZ)
     info = {"tgz": tgz}
@@ -149,29 +186,22 @@ def fetch_cub(root: str) -> dict:
         print(f"downloading CUB-200-2011 (1.2 GB; only text files will be extracted) "
               f"into {root} ...")
         part = tgz + ".part"
-        with pbar(total=None, desc="download", unit="B") as bar:
-            def hook(count, block, total):
-                if total and total > 0:
-                    bar.total = total
-                bar.update(block)
-            try:
-                urllib.request.urlretrieve(CUB_URL, part, reporthook=hook)
-            except Exception as exc:                   # noqa: BLE001
-                if os.path.exists(part):
-                    os.remove(part)
-                raise RuntimeError(
-                    f"could not download CUB-200-2011: {exc}\n"
-                    f"Fetch it by hand -- one public file:\n"
-                    f"    cd {root}\n"
-                    f'    curl -L -o {CUB_TGZ} "{CUB_URL}"\n'
-                    f"    tar xzf {CUB_TGZ} CUB_200_2011/images.txt "
-                    f"CUB_200_2011/bounding_boxes.txt CUB_200_2011/attributes "
-                    f"CUB_200_2011/parts attributes.txt\n") from exc
+        try:
+            info["download_method"] = download(CUB_URL, part)
+        except Exception as exc:                   # noqa: BLE001
+            if os.path.exists(part):
+                os.remove(part)
+            raise RuntimeError(
+                f"could not download CUB-200-2011: {exc}\n"
+                f"Fetch it by hand -- one public file:\n"
+                f"    cd {root}\n"
+                f'    curl -L -o {CUB_TGZ} "{CUB_URL}"\n'
+                f"    tar xzf {CUB_TGZ} CUB_200_2011/images.txt "
+                f"CUB_200_2011/bounding_boxes.txt CUB_200_2011/attributes "
+                f"CUB_200_2011/parts attributes.txt\n") from exc
         os.replace(part, tgz)
-    got = _md5(tgz)
-    info["md5"] = got
-    info["md5_expected"] = CUB_MD5
-    info["md5_ok"] = bool(got == CUB_MD5)
+    info.update(check_md5(tgz))
+    got = info["md5"]
     if not info["md5_ok"]:
         bad = tgz + ".corrupt"
         os.replace(tgz, bad)
@@ -381,8 +411,15 @@ def to_markdown(rep: dict, fetch: dict | None) -> str:
          f"| mask/composite dimensions all match (session 5) | {rep.get('size_match_all')} |",
          f"| attribute names file | `{rep.get('attr_names_file')}` |", ""]
     if fetch:
-        L += [f"- archive md5: `{fetch.get('md5')}` -- matches the value CaltechDATA "
-              "publishes", ""]
+        src = fetch.get("source", f"downloaded by {fetch.get('download_method', '?')}")
+        if "md5" not in fetch:
+            md5_txt = "archive not present next to the extraction, so not checked"
+        elif fetch["md5_ok"]:
+            md5_txt = f"`{fetch['md5']}` -- matches the value CaltechDATA publishes"
+        else:
+            md5_txt = (f"`{fetch['md5']}` -- **does NOT match** `{CUB_MD5}`; the "
+                       "structural checks above decide whether the extraction is usable")
+        L += [f"- metadata source: {src}", f"- archive md5: {md5_txt}", ""]
     if rep.get("ok"):
         L += ["## The difficulty proxies (all splits)", "",
               "| proxy | min | q05 | q25 | median | q75 | q95 | max |",
@@ -511,6 +548,49 @@ def _self_test() -> int:
         else:
             print(f"  ok   archive extraction takes the {len(got)} text files and no image")
 
+    # The exact hand-extraction Aser ran on 24 Sept 2026 (tar with an explicit member
+    # list, archive left next to the extraction) must be found as it is.
+    if shutil.which("tar"):
+        with tempfile.TemporaryDirectory() as td:
+            src = os.path.join(td, "src")
+            write_mini_cub(src, rels, n_attr, present, cert, vis, box)
+            tgz = os.path.join(td, "data", CUB_TGZ)
+            os.makedirs(os.path.dirname(tgz))
+            with tarfile.open(tgz, "w:gz") as tf:
+                tf.add(os.path.join(src, "CUB_200_2011"), arcname="CUB_200_2011")
+                tf.add(os.path.join(src, "attributes.txt"), arcname="attributes.txt")
+            r = subprocess.run(["tar", "xzf", CUB_TGZ, "CUB_200_2011/images.txt",
+                                "CUB_200_2011/bounding_boxes.txt", "CUB_200_2011/attributes",
+                                "CUB_200_2011/parts", "attributes.txt"],
+                               cwd=os.path.dirname(tgz), capture_output=True, text=True)
+            d = find_cub(os.path.dirname(tgz))
+            names, npath = parse_attr_names(d, n_attr) if d else ([], None)
+            if r.returncode != 0 or d is None or npath is None:
+                print(f"  FAIL the hand-extracted layout is not found: {r.stderr[-300:]}")
+                ok = False
+            else:
+                print("  ok   the hand-extracted layout (tar with the member list) is found, "
+                      "names included")
+
+    # Download: curl first, urllib fallback; both must deliver the same bytes.
+    with tempfile.TemporaryDirectory() as td:
+        srcf = os.path.join(td, "blob.bin")
+        payload = os.urandom(300_000)
+        open(srcf, "wb").write(payload)
+        url = "file://" + srcf
+        got = []
+        for use_curl in ((True, False) if shutil.which("curl") else (False,)):
+            dst = os.path.join(td, f"out_{use_curl}.bin")
+            try:
+                how = download(url, dst, use_curl=use_curl)
+                got.append((how, open(dst, "rb").read() == payload))
+            except Exception as exc:                  # noqa: BLE001
+                got.append((f"{'curl' if use_curl else 'urllib'} raised {exc}", False))
+        if not all(g[1] for g in got):
+            print(f"  FAIL download paths: {got}"); ok = False
+        else:
+            print(f"  ok   download delivers identical bytes via {', '.join(g[0] for g in got)}")
+
     print("SELF-TEST OK" if ok else "SELF-TEST FAILED")
     return 0 if ok else 1
 
@@ -538,6 +618,18 @@ def main() -> int:
 
     fetch = None
     cub_dir = args.cub_dir or find_cub(root)
+    if cub_dir is not None:
+        # Already extracted (e.g. by hand). If the archive sits next to it, check it
+        # anyway and report; the structural checks below remain the gate, because
+        # the extracted files -- not the archive -- are what gets used.
+        tgz = os.path.join(os.path.dirname(os.path.abspath(cub_dir)), CUB_TGZ)
+        fetch = {"source": "existing extraction"}
+        if os.path.isfile(tgz):
+            fetch.update(check_md5(tgz))
+            if not fetch["md5_ok"]:
+                print(f"WARNING: {tgz} has md5 {fetch['md5']}, expected {CUB_MD5}. "
+                      "The extracted files are used as they are; the structural checks "
+                      "decide whether they are complete.", file=sys.stderr)
     if cub_dir is None:
         if args.no_download:
             raise SystemExit(f"no CUB_200_2011 metadata under {root} and --no-download.")

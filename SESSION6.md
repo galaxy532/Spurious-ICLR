@@ -108,21 +108,26 @@ skipped or fails without affecting anything else.
 ```bash
 cd /notebooks/Spurious-ICLR
 git pull
-PUSH=1 nohup setsid bash run_session6.sh > results/logs/session6_nohup.out 2>&1 &
+nohup setsid bash run_session6.sh > results/logs/session6_nohup.out 2>&1 &
 ```
 
-With `PUSH=1`, `results/` is committed and pushed **whenever the script exits**:
-on success, on an abort, or after a failed step. A `git pull` on the laptop
-therefore always brings back `SUMMARY.md`, every step's full log,
-`environment.txt` and all the `.md`/`.json` tables, even for a run that died
-early. The nohup file goes into `results/logs/` for the same reason. If the push
-itself fails (e.g. credentials), the terminal says so and gives the manual
-command; the reason is in `results/logs/session6_<stamp>/90_push.log`. Not
-pulled, by design: the `.npz` files (bundles and `v6_cub_meta.npz`), which are
-regenerable and not needed for review.
+**The script never commits or pushes** (Aser's decision, 24 Sept 2026). When it
+has finished -- or aborted -- send everything back with:
 
-Options: `BUNDLE=`, `TEST_BUNDLE=`, `MIN_FRAC=0.01`, `DATA_ROOT=`, `NO_DOWNLOAD=1`,
-`PUSH=1`. Stage 0 runs the three self-checks and aborts before touching data if
+```bash
+cd /notebooks/Spurious-ICLR
+git add -A results
+git commit -m "session 6 results"
+git push
+```
+
+Everything needed for review is under `results/`: `SUMMARY.md`, every step's
+full log, `environment.txt`, all the `.md`/`.json` tables, and the nohup file.
+This holds even for a run that died early. Not pulled, by design: the `.npz`
+files (bundles and `v6_cub_meta.npz`), which are regenerable and not needed for
+review.
+
+Options: `BUNDLE=`, `TEST_BUNDLE=`, `MIN_FRAC=0.01`, `DATA_ROOT=`, `NO_DOWNLOAD=1`. Stage 0 runs the three self-checks and aborts before touching data if
 any fails. If `results/v5_bird_fraction.csv` is missing on the box, the runner
 recomputes it with `cub_masks.py` first (1–2 min).
 
@@ -182,3 +187,23 @@ once, and every image must have a box. If the download itself fails,
   `results/v5_bird_fraction.csv` never came back on a pull. The comment is now on
   its own line and `git check-ignore` confirms `results/*.csv` is tracked. The
   next push from the box therefore also adds `v5_bird_fraction.csv` (~1.4 MB).
+
+## 8. Run log
+
+**Run 1, 24 Sept 2026 (`results/logs/session6_20260924_031959/`): aborted at
+`20_cub_meta`, nothing screened.** Self-checks all passed. Two problems:
+
+1. **The download got HTTP 403 through Python's urllib**, while `curl -L` on the
+   same box and the same URL worked. The visible difference is the client (urllib
+   sends `User-Agent: Python-urllib/3.x`); the server's exact rule was not
+   investigated. Fix: `cub_meta.download()` now uses curl when it is installed and
+   falls back to urllib with a curl-like User-Agent. Self-tested on both paths.
+   Aser had already fetched and extracted the archive by hand into `data/` with
+   the command `cub_meta.py` printed. That layout is found as it is (self-tested
+   with the exact `tar` member list), so the rerun does not download at all. When
+   the archive sits next to an existing extraction, its md5 is now checked and
+   reported in `v6_cub_meta.md`. It cannot block the run, because the extracted
+   files are what gets used and the structural checks gate them.
+2. **The automatic push failed** ("could not read Username"): a background job
+   cannot prompt for a GitHub token. Aser's decision: pushing is removed from the
+   runner entirely, and he commits and pushes `results/` by hand (commands in §4).

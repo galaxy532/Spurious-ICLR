@@ -14,11 +14,11 @@
 # only slow step is the one-time download of CUB-200-2011 (1.2 GB; only its text files
 # are extracted). Expect ~5 minutes of compute plus the download.
 #
-#   PUSH=1 nohup setsid bash run_session6.sh > results/logs/session6_nohup.out 2>&1 &
+#   nohup setsid bash run_session6.sh > results/logs/session6_nohup.out 2>&1 &
 #
-# With PUSH=1, results/ is committed and pushed WHENEVER the script exits -- on success,
-# on an abort, or on a failed step -- so the logs of a failed run come back on a
-# `git pull` too. The nohup file is written into results/logs/ for the same reason.
+# This script never commits or pushes; Aser does that by hand afterwards (see
+# SESSION6.md §4). Everything needed for review is written under results/, including
+# the nohup file, so one commit of results/ brings it all back.
 #
 # What it writes, all under results/ so a `git pull` brings it back:
 #   results/v6_cub_meta.{md,json}              the CUB join and its checks
@@ -39,7 +39,6 @@
 #   MIN_FRAC=0.01       smallest eligible group, as a fraction of n
 #   DATA_ROOT=...       passed through as SPURIOUS_DATA_ROOT if you set it
 #   NO_DOWNLOAD=1       fail instead of fetching CUB-200-2011 / the segmentations
-#   PUSH=1              commit and push results/ when the script exits, however it exits
 # =====================================================================================
 
 set -u
@@ -81,26 +80,6 @@ locate() {   # locate <name> ... : first existing among ./, results/, ../, then 
 
 echo "# Session 6 summary ($STAMP)" > "$SUMMARY"
 
-# ---------------------------------------------------------------------------
-# Push on EVERY exit path. Session 5's runner pushed only at the very end, so a
-# run that aborted early (a failed self-check, a failed download) brought nothing
-# back and the log had to be copied by hand. A trap fires on any exit.
-# ---------------------------------------------------------------------------
-finish() {
-  local rc=$?
-  if [ "${PUSH:-}" = "1" ]; then
-    { echo "## 90_push"; echo "";
-      echo "- committing and pushing results/ (the run exited with status $rc)"; echo ""; } >> "$SUMMARY"
-    if { git add -A results && git commit -q -m "session 6 results ($STAMP, exit $rc)" \
-         && git push; } > "$LOG/90_push.log" 2>&1; then
-      echo "pushed results/ (run exit status $rc)"
-    else
-      echo "PUSH FAILED -- see $LOG/90_push.log, then push by hand:" >&2
-      echo "  git add -A results && git commit -m 'session 6 results' && git push" >&2
-    fi
-  fi
-}
-trap finish EXIT
 if [ -z "$BUNDLE" ] || [ ! -f "$BUNDLE" ]; then
   {
     echo ""

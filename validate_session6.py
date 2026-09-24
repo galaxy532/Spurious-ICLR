@@ -131,10 +131,18 @@ def main() -> int:
                    PYTHONPATH=HERE + os.pathsep + os.environ.get("PYTHONPATH", ""))
 
         next(it)
+        # As on the box after the hand download: the archive sits next to the
+        # extraction. Its md5 is checked and reported, and cannot block the run.
+        open(os.path.join(td, "CUB_200_2011.tgz"), "wb").write(b"not the real archive")
         rc, out = _run(["cub_meta.py", "--no-download", "--fractions",
                         "results/v5_bird_fraction.csv", "--tag", "v6_cub_meta"], work, env)
         if rc != 0 or not os.path.exists(os.path.join(work, "results", "v6_cub_meta.npz")):
             fails.append(f"cub_meta.py exited {rc}: {out}")
+        else:
+            md = open(os.path.join(work, "results", "v6_cub_meta.md")).read()
+            if "existing extraction" not in md or "does NOT match" not in md:
+                fails.append("cub_meta.md does not report the existing extraction and "
+                             "the archive md5")
 
         next(it)
         rc, out = _run(["sv_screen.py", "--bundle", "features_v4_mini_dinov2_train.npz",
